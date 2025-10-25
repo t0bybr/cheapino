@@ -183,17 +183,61 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 // Encoder configuration (Cheapino v2 has 1 encoder)
-#if defined(ENCODER_MAP_ENABLE)
-const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][NUM_DIRECTIONS] = {
-    [_BASE]   = { ENCODER_CCW_CW(KC_VOLD, KC_VOLU) },    // Volume control on base
-    [_MEDIA]  = { ENCODER_CCW_CW(KC_MPRV, KC_MNXT) },    // Track change on media
-    [_NAV]    = { ENCODER_CCW_CW(KC_LEFT, KC_RIGHT) },   // Horizontal scroll on nav
-    [_MOUSE]  = { ENCODER_CCW_CW(KC_WH_U, KC_WH_D) },    // Mouse wheel on mouse
-    [_SYM_R]  = { ENCODER_CCW_CW(KC_NO, KC_NO) },
-    [_NUM]    = { ENCODER_CCW_CW(KC_NO, KC_NO) },
-    [_FKEY]   = { ENCODER_CCW_CW(KC_NO, KC_NO) },
-    [_EXTRA]  = { ENCODER_CCW_CW(KC_TRNS, KC_TRNS) },
-};
+// Using encoder_update_user instead of encoder_map for compatibility
+#ifdef ENCODER_ENABLE
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    // Get current layer
+    uint8_t layer = get_highest_layer(layer_state);
+
+    switch (layer) {
+        case _BASE:
+            // Volume control on base layer
+            if (clockwise) {
+                tap_code(KC_VOLU);
+            } else {
+                tap_code(KC_VOLD);
+            }
+            break;
+
+        case _MEDIA:
+            // Track change on media layer
+            if (clockwise) {
+                tap_code(KC_MNXT);
+            } else {
+                tap_code(KC_MPRV);
+            }
+            break;
+
+        case _NAV:
+            // Horizontal scroll on nav layer
+            if (clockwise) {
+                tap_code(KC_RIGHT);
+            } else {
+                tap_code(KC_LEFT);
+            }
+            break;
+
+        case _MOUSE:
+            // Mouse wheel on mouse layer
+            if (clockwise) {
+                tap_code(KC_WH_D);
+            } else {
+                tap_code(KC_WH_U);
+            }
+            break;
+
+        default:
+            // Default: volume control
+            if (clockwise) {
+                tap_code(KC_VOLU);
+            } else {
+                tap_code(KC_VOLD);
+            }
+            break;
+    }
+
+    return false;
+}
 #endif
 
 // Per-key tapping term

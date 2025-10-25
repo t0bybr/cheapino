@@ -10,7 +10,7 @@ BACKLIGHT_ENABLE = no          # Enable keyboard backlight functionality
 RGBLIGHT_ENABLE = no           # Enable keyboard RGB underglow
 AUDIO_ENABLE = no              # Audio output
 ENCODER_ENABLE = yes           # Rotary encoder support
-ENCODER_MAP_ENABLE = yes       # Encoder map (per-layer)
+# ENCODER_MAP_ENABLE = yes     # Disabled - Cheapino uses custom encoder.c
 
 # Advanced features
 COMBO_ENABLE = yes             # Key combos
