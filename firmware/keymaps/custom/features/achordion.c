@@ -14,7 +14,11 @@ static struct {
     uint16_t keycode;
     uint16_t timer;
     keyrecord_t record;
-} achordion_state = {KC_NO, 0, {0}};
+} achordion_state = {
+    .keycode = KC_NO,
+    .timer = 0,
+    .record = {{0}}
+};
 
 __attribute__((weak)) uint16_t achordion_timeout(uint16_t tap_hold_keycode) {
     return ACHORDION_TIMEOUT;
