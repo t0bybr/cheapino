@@ -182,63 +182,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 };
 
-// Encoder configuration (Cheapino v2 has 1 encoder)
-// Using encoder_update_user instead of encoder_map for compatibility
-#ifdef ENCODER_ENABLE
-bool encoder_update_user(uint8_t index, bool clockwise) {
-    // Get current layer
-    uint8_t layer = get_highest_layer(layer_state);
-
-    switch (layer) {
-        case _BASE:
-            // Volume control on base layer
-            if (clockwise) {
-                tap_code(KC_VOLU);
-            } else {
-                tap_code(KC_VOLD);
-            }
-            break;
-
-        case _MEDIA:
-            // Track change on media layer
-            if (clockwise) {
-                tap_code(KC_MNXT);
-            } else {
-                tap_code(KC_MPRV);
-            }
-            break;
-
-        case _NAV:
-            // Horizontal scroll on nav layer
-            if (clockwise) {
-                tap_code(KC_RIGHT);
-            } else {
-                tap_code(KC_LEFT);
-            }
-            break;
-
-        case _MOUSE:
-            // Mouse wheel on mouse layer
-            if (clockwise) {
-                tap_code(KC_WH_D);
-            } else {
-                tap_code(KC_WH_U);
-            }
-            break;
-
-        default:
-            // Default: volume control
-            if (clockwise) {
-                tap_code(KC_VOLU);
-            } else {
-                tap_code(KC_VOLD);
-            }
-            break;
-    }
-
-    return false;
-}
-#endif
+// Encoder configuration:
+// Cheapino uses a custom encoder implementation via encoder.c at the keyboard level.
+// The encoder is handled through the matrix and does not use QMK's standard ENCODER_ENABLE.
+//
+// The default behavior from cheapino/encoder.c is:
+// - Click: Media Play/Pause
+// - Rotate: Page Up/Down (or layer-specific actions)
+//
+// To customize encoder behavior per layer, you would need to modify
+// keyboards/cheapino/encoder.c in the main QMK firmware.
 
 // Per-key tapping term
 uint16_t get_tapping_term(uint16_t keycode, keyrecord_t *record) {

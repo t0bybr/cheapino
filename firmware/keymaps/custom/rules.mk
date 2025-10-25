@@ -9,7 +9,7 @@ NKRO_ENABLE = yes              # N-Key Rollover
 BACKLIGHT_ENABLE = no          # Enable keyboard backlight functionality
 RGBLIGHT_ENABLE = no           # Enable keyboard RGB underglow
 AUDIO_ENABLE = no              # Audio output
-ENCODER_ENABLE = yes           # Rotary encoder support
+# ENCODER_ENABLE = no          # Cheapino uses custom encoder.c from keyboard level
 # ENCODER_MAP_ENABLE = yes     # Disabled - Cheapino uses custom encoder.c
 
 # Advanced features
