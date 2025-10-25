@@ -13,9 +13,9 @@ AUDIO_ENABLE = no              # Audio output
 # ENCODER_MAP_ENABLE = yes     # Disabled - Cheapino uses custom encoder.c
 
 # Advanced features
-COMBO_ENABLE = yes             # Key combos
+COMBO_ENABLE = no              # Key combos (disabled - not used in this keymap)
 REPEAT_KEY_ENABLE = yes        # Repeat key functionality (QMK 0.20+)
-KEY_OVERRIDE_ENABLE = yes      # Key overrides
+KEY_OVERRIDE_ENABLE = no       # Key overrides (disabled - not used in this keymap)
 
 # Space optimization
 LTO_ENABLE = yes               # Link Time Optimization

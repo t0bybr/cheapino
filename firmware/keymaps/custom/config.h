@@ -17,9 +17,6 @@
 // Achordion settings (requires achordion.c)
 #define ACHORDION_STREAK                    // Enable streak detection
 
-// Combo configuration
-#define COMBO_TERM 50
-
 // Performance optimizations
 #define FORCE_NKRO                          // N-Key Rollover
 #define USB_POLLING_INTERVAL_MS 1           // 1000Hz polling rate
