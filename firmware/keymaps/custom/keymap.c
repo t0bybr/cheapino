@@ -23,9 +23,9 @@ enum custom_keycodes {
 };
 
 // Home Row Mods (using standard mod-tap for better Achordion compatibility)
-// Left hand: D=GUI, R=ALT, S=CTRL, T=SHIFT
+// Left hand: A=GUI, R=RALT(AltGr für Umlaute), S=CTRL, T=SHIFT
 #define HM_A LGUI_T(KC_A)
-#define HM_R LALT_T(KC_R)
+#define HM_R RALT_T(KC_R)  // AltGr für deutsche Umlaute (ä, ö, ü)
 #define HM_S LCTL_T(KC_S)
 #define HM_T LSFT_T(KC_T)
 
@@ -417,6 +417,38 @@ bool achordion_eager_mod(uint16_t keycode) {
         default:
             return false;
     }
+}
+
+// LED Layer Indicator
+// Set LED color based on active layer
+layer_state_t layer_state_set_user(layer_state_t state) {
+    switch (get_highest_layer(state)) {
+        case _BASE:
+            rgblight_sethsv_noeeprom(0, 0, 0);     // Off/White - Base layer
+            break;
+        case _MEDIA:
+            rgblight_sethsv_noeeprom(HSV_CYAN);    // Cyan - Media
+            break;
+        case _NAV:
+            rgblight_sethsv_noeeprom(HSV_BLUE);    // Blue - Navigation
+            break;
+        case _MOUSE:
+            rgblight_sethsv_noeeprom(HSV_GREEN);   // Green - Mouse
+            break;
+        case _SYM_R:
+            rgblight_sethsv_noeeprom(HSV_MAGENTA); // Magenta - Symbols
+            break;
+        case _NUM:
+            rgblight_sethsv_noeeprom(HSV_ORANGE);  // Orange - Numbers
+            break;
+        case _FKEY:
+            rgblight_sethsv_noeeprom(HSV_PURPLE);  // Purple - F-Keys
+            break;
+        default:
+            rgblight_sethsv_noeeprom(HSV_RED);     // Red - Unknown layer
+            break;
+    }
+    return state;
 }
 
 // Process record user
