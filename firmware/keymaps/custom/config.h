@@ -24,6 +24,10 @@
 // Debounce
 #define DEBOUNCE 5
 
+// Bootloader Access:
+// Hold BOOTSEL button while plugging in USB to enter bootloader mode
+// (Double-tap reset requires a physical reset button, which this board doesn't have)
+
 // RGB/LED (if applicable)
 // #define RGB_MATRIX_ENABLE
 
