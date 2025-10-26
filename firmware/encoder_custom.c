@@ -27,12 +27,12 @@ void turned(bool clockwise) {
             tap_code(clockwise ? KC_WH_U : KC_WH_D);
             break;
 
-        case 1:  // Media Layer - Volume
-            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+        case 1:  // Media Layer - Volume (inverted direction)
+            tap_code(clockwise ? KC_VOLD : KC_VOLU);
             break;
 
-        case 2:  // Navigation Layer - Arrow Keys Left/Right
-            tap_code(clockwise ? KC_RGHT : KC_LEFT);
+        case 2:  // Navigation Layer - Arrow Keys Left/Right (inverted direction)
+            tap_code(clockwise ? KC_LEFT : KC_RGHT);
             break;
 
         case 3:  // Mouse Layer - No encoder action
