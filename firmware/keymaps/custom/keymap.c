@@ -254,13 +254,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * Function Keys Layer
      * Vial Layer 6 korrekt gemappt
      * Note: QK_REP = hold delete, then tap again to auto-repeat
+     * Note: QK_BOOT (rechts oben) = Enter bootloader for flashing
      */
     [_FKEY] = LAYOUT_split_3x5_3(
   // Position 0-4: Links Reihe 1 (reversed)
   KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
 
   // Position 5-9: Rechts Reihe 1
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   QK_BOOT,
 
   // Position 10-14: Links Reihe 2 (reversed)
   KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
@@ -421,6 +422,7 @@ bool achordion_eager_mod(uint16_t keycode) {
 
 // LED brightness (0-255, lower = dimmer)
 #define LED_BRIGHTNESS 50  // Reduced from default 255
+#define LED_BRIGHTNESS_HOMEROW 50  // Same brightness for homerow mod indicator
 
 // Track homerow mod state for LED feedback
 static bool homerow_mod_active = false;
@@ -515,7 +517,7 @@ void matrix_scan_user(void) {
         } else if (timer_elapsed(hold_timer) > TAPPING_TERM) {
             // Mod has been held long enough - activate white LED
             homerow_mod_active = true;
-            rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS * 2);  // White, slightly brighter
+            rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS_HOMEROW);  // White LED
         }
     } else if (!mod_is_held) {
         hold_timer = 0;
