@@ -49,31 +49,39 @@ enum custom_keycodes {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /*
      * Base Layer: Colemak with Home Row Mods
-     * ┌───┬───┬───┬───┬───┐       ┌───┬───┬───┬───┬───┐
-     * │ Q │ W │ F │ P │ G │       │ J │ L │ U │ Y │ ' │
-     * ├───┼───┼───┼───┼───┤       ├───┼───┼───┼───┼───┤
-     * │ A │ R │ S │ T │ D │       │ H │ N │ E │ I │ O │
-     * │Gui│Alt│Ctl│Sft│   │       │   │Sft│Ctl│Alt│Gui│
-     * ├───┼───┼───┼───┼───┤       ├───┼───┼───┼───┼───┤
-     * │ Z │ X │ C │ V │ B │       │ K │ M │ , │ . │ / │
-     * └───┴───┴───┴───┴───┘       └───┴───┴───┴───┴───┘
-     *       ┌─────┬─────┬─────┐ ┌─────┬─────┬─────┐
-     *       │ Esc │ Spc │ Tab │ │ Ent │Bspc │ Del │
-     *       │Media│ Nav │Mouse│ │ Sym │ Num │Fkey │
-     *       └─────┴─────┴─────┘ └─────┴─────┴─────┘
+     * KORREKTE Matrix-Zuordnung basierend auf Test-Ergebnissen
+     *
+     * Physisch:
+     * Links:  Q W F P G  |  A R S T D  |  Z X C V B  |  Esc Spc Tab
+     * Rechts: J L U Y '  |  H N E I O  |  K M , . /  |  Ent Bspc Del
      */
     [_BASE] = LAYOUT_split_3x5_3(
-  // Left Hand - Colemak
-  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,     // Reihe 1: Q W F P G
-  HM_A,    HM_R,    HM_S,    HM_T,    KC_D,     // Reihe 2: A R S T D (mit Mods)
-  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,     // Reihe 3: Z X C V B
-           ESC_MED, SPC_NAV, TAB_MOU,             // Daumen: Esc Spc Tab
+  // Position 0-4: Links Reihe 1
+  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,
 
-  // Right Hand - Colemak
-  KC_J,    KC_L,    KC_U,    KC_Y,    KC_QUOT,  // Reihe 1: J L U Y '
-  KC_H,    HM_N,    HM_E,    HM_I,    HM_O,     // Reihe 2: H N E I O (mit Mods)
-  KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,  // Reihe 3: K M , . /
-  ENT_SYM, BSP_NUM, DEL_FKY                      // Daumen: Ent Bspc Del
+  // Position 5-9: Rechts Reihe 1
+  KC_J,    KC_L,    KC_U,    KC_Y,    KC_QUOT,
+
+  // Position 10-14: Links Reihe 2 (mit Home Row Mods)
+  HM_A,    HM_R,    HM_S,    HM_T,    KC_D,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3 (mit Home Row Mods)
+           KC_H,    HM_N,    HM_E,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5 (mit Home Row Mods)
+  HM_I,    HM_O,
+
+  // Position 20-24: Links Reihe 3
+  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,
+
+  // Position 25-29: Rechts Reihe 3
+  KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,
+
+  // Position 30-32: Links Daumen
+  ESC_MED, SPC_NAV, TAB_MOU,
+
+  // Position 33-35: Rechts Daumen
+  ENT_SYM, BSP_NUM, DEL_FKY
     ),
 
     /*
