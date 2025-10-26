@@ -86,94 +86,202 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     /*
      * Media Layer
+     * Vial Layer 1 korrekt gemappt
      */
     [_MEDIA] = LAYOUT_split_3x5_3(
+  // Position 0-4: Links Reihe 1
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_LEFT, KC_MPRV, KC_VOLD, KC_VOLU, KC_MNXT,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           _______, KC_MPLY, KC_MUTE,
 
+  // Position 5-9: Rechts Reihe 1
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 10-14: Links Reihe 2
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_LEFT, KC_MPRV, KC_VOLD,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_VOLU, KC_MNXT,
+
+  // Position 20-24: Links Reihe 3
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_MSTP, _______, _______
+
+  // Position 25-29: Rechts Reihe 3
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 30-32: Links Daumen (ESC=TRNS weil Layer-Aktivierung, SPC=NO, TAB=NO)
+  _______, KC_NO,   KC_NO,
+
+  // Position 33-35: Rechts Daumen
+  KC_MSTP, KC_MPLY, KC_MUTE
     ),
 
     /*
      * Navigation Layer
+     * Vial Layer 2 korrekt gemappt
      */
     [_NAV] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_PGUP, KC_UP,   KC_PGDN, KC_NO,
-  KC_HOME, KC_LEFT, KC_DOWN, KC_RGHT, KC_END,
+  // Position 0-4: Links Reihe 1
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           KC_NO,   _______, _______,
 
+  // Position 5-9: Rechts Reihe 1
+  KC_NO,   KC_PGUP, KC_UP,   KC_PGDN, KC_NO,
+
+  // Position 10-14: Links Reihe 2 (Modifier auf links, reversed)
+  KC_LGUI, KC_LALT, KC_LCTL, KC_LSFT, KC_NO,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_HOME, KC_LEFT, KC_DOWN,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_RGHT, KC_END,
+
+  // Position 20-24: Links Reihe 3
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_LSFT, KC_LCTL, KC_LALT, KC_LGUI,
+
+  // Position 25-29: Rechts Reihe 3
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  _______, _______, _______
+
+  // Position 30-32: Links Daumen
+  KC_NO,   _______, KC_NO,
+
+  // Position 33-35: Rechts Daumen
+  KC_NO,   KC_NO,   KC_NO
     ),
 
     /*
      * Mouse Layer
+     * Vial Layer 3 korrekt gemappt
      */
     [_MOUSE] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_WH_D, KC_MS_U, KC_WH_U, KC_BTN2,
-  KC_WH_L, KC_MS_L, KC_MS_D, KC_MS_R, KC_BTN1,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_BTN3,
-           KC_NO,   _______, _______,
+  // Position 0-4: Links Reihe 1
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
 
+  // Position 5-9: Rechts Reihe 1
+  KC_NO,   KC_WH_D, KC_MS_U, KC_WH_U, KC_NO,
+
+  // Position 10-14: Links Reihe 2
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_WH_L, KC_MS_L, KC_MS_D,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_MS_R, KC_WH_R,
+
+  // Position 20-24: Links Reihe 3 (Acceleration reversed)
+  KC_NO,   KC_ACL0, KC_ACL1, KC_ACL2, KC_NO,
+
+  // Position 25-29: Rechts Reihe 3
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_ACL2, KC_ACL1, KC_ACL0, KC_NO,
-  _______, _______, _______
+
+  // Position 30-32: Links Daumen
+  KC_NO,   KC_NO,   _______,
+
+  // Position 33-35: Rechts Daumen
+  KC_BTN2, KC_BTN1, KC_BTN3
     ),
 
     /*
      * Symbols Layer (Right)
+     * Vial Layer 4 korrekt gemappt
      */
     [_SYM_R] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_RSFT, KC_RCTL, KC_RALT, KC_RGUI,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           KC_NO,   _______, _______,
+  // Position 0-4: Links Reihe 1 (reversed)
+  S(KC_LBRC), S(KC_7), S(KC_8), S(KC_9), S(KC_RBRC),
 
-  S(KC_RBRC), S(KC_9), S(KC_8), S(KC_7), S(KC_LBRC),
-  S(KC_EQL),  S(KC_6), S(KC_5), S(KC_4), S(KC_SCLN),
-  S(KC_BSLS), S(KC_3), S(KC_2), S(KC_1), S(KC_GRV),
-  _______, _______, S(KC_MINS)
+  // Position 5-9: Rechts Reihe 1
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 10-14: Links Reihe 2 (reversed)
+  S(KC_SCLN), S(KC_4), S(KC_5), S(KC_6), S(KC_EQL),
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_NO,   KC_RSFT, KC_RCTL,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_RALT, KC_RGUI,
+
+  // Position 20-24: Links Reihe 3 (reversed)
+  S(KC_GRV), S(KC_1), S(KC_2), S(KC_3), S(KC_BSLS),
+
+  // Position 25-29: Rechts Reihe 3
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 30-32: Links Daumen
+  S(KC_9), S(KC_0), S(KC_MINS),
+
+  // Position 33-35: Rechts Daumen
+  _______, KC_NO,   KC_NO
     ),
 
     /*
      * Numbers Layer
+     * Vial Layer 5 korrekt gemappt
      * Note: QK_REP = hold backspace, then tap again to auto-repeat
      */
     [_NUM] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_RSFT, KC_RCTL, KC_RALT, KC_RGUI,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           KC_NO,   _______, QK_REP,
+  // Position 0-4: Links Reihe 1 (reversed)
+  KC_LBRC, KC_7,    KC_8,    KC_9,    KC_RBRC,
 
-  KC_RBRC, KC_9,    KC_8,    KC_7,    KC_LBRC,
-  KC_PEQL, KC_6,    KC_5,    KC_4,    KC_SCLN,
-  KC_BSLS, KC_3,    KC_2,    KC_1,    KC_GRV,
-  KC_PMNS, KC_0,    _______
+  // Position 5-9: Rechts Reihe 1
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 10-14: Links Reihe 2 (reversed)
+  KC_SCLN, KC_4,    KC_5,    KC_6,    KC_PEQL,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_NO,   KC_RSFT, KC_RCTL,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_RALT, KC_RGUI,
+
+  // Position 20-24: Links Reihe 3 (reversed)
+  KC_GRV,  KC_1,    KC_2,    KC_3,    KC_BSLS,
+
+  // Position 25-29: Rechts Reihe 3
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 30-32: Links Daumen (QK_REP für Autorepeat-Funktion)
+  QK_REP,  KC_0,    KC_PMNS,
+
+  // Position 33-35: Rechts Daumen
+  KC_NO,   _______, KC_NO
     ),
 
     /*
      * Function Keys Layer
+     * Vial Layer 6 korrekt gemappt
      * Note: QK_REP = hold delete, then tap again to auto-repeat
      */
     [_FKEY] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_RSFT, KC_RCTL, KC_RALT, KC_RGUI,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           KC_NO,   _______, QK_REP,
+  // Position 0-4: Links Reihe 1 (reversed)
+  KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
 
-  KC_PSCR, KC_F9,   KC_F8,   KC_F7,   KC_F12,
-  KC_NO,   KC_F6,   KC_F5,   KC_F4,   KC_F11,
-  KC_NO,   KC_F3,   KC_F2,   KC_F1,   KC_F10,
-  KC_NO,   KC_APP,  _______
+  // Position 5-9: Rechts Reihe 1
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 10-14: Links Reihe 2 (reversed)
+  KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
+
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3
+           KC_NO,   KC_RSFT, KC_RCTL,
+
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5
+  KC_RALT, KC_RGUI,
+
+  // Position 20-24: Links Reihe 3 (reversed)
+  KC_F10,  KC_F1,   KC_F2,   KC_F3,   KC_NO,
+
+  // Position 25-29: Rechts Reihe 3
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+
+  // Position 30-32: Links Daumen (QK_REP für Autorepeat-Funktion)
+  KC_APP,  KC_NO,   QK_REP,
+
+  // Position 33-35: Rechts Daumen
+  KC_NO,   KC_NO,   _______
     ),
 
     /*
