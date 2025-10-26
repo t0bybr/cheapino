@@ -27,4 +27,3 @@ RP2040_BOOTLOADER_DOUBLE_TAP_RESET = yes  # Enable double-tap reset for bootload
 
 # Custom source files
 SRC += features/achordion.c    # Achordion for better home row mods
-SRC += encoder.c               # Custom encoder with layer-specific actions

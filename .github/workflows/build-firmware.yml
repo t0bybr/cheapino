@@ -46,6 +46,10 @@ jobs:
         run: |
           cp -r cheapino-config/firmware/keymaps/custom qmk_firmware/keyboards/cheapino/keymaps/
 
+      - name: Copy custom encoder with layer support
+        run: |
+          cp cheapino-config/firmware/encoder_custom.c qmk_firmware/keyboards/cheapino/encoder.c
+
       - name: Compile firmware
         run: |
           cd qmk_firmware

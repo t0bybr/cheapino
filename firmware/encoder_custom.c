@@ -1,0 +1,78 @@
+// Custom Encoder Implementation for Cheapino with Layer-specific Actions
+// Based on original cheapino/encoder.c with modifications for layer support
+
+#include "quantum.h"
+#include "gpio.h"
+#include "encoder.h"
+
+#define COL_SHIFTER ((matrix_row_t)1)
+#define ENC_ROW 1
+#define ENC_A_COL 5
+#define ENC_B_COL 0
+#define ENC_BUTTON_COL 4
+
+static uint8_t colABPressed = 0;
+static bool encoderPressed = false;
+
+// Handle encoder button click
+static void clicked(void) {
+    tap_code(KC_MPLY);  // Media Play/Pause
+}
+
+// Handle encoder rotation based on active layer
+static void turned(bool clockwise) {
+    uint8_t layer = get_highest_layer(layer_state);
+
+    switch (layer) {
+        case 0:  // Base Layer - Mouse Wheel (as per Vial config)
+            tap_code(clockwise ? KC_WH_U : KC_WH_D);
+            break;
+
+        case 1:  // Media Layer - Volume
+            tap_code(clockwise ? KC_VOLU : KC_VOLD);
+            break;
+
+        case 2:  // Navigation Layer - Arrow Keys Left/Right
+            tap_code(clockwise ? KC_RGHT : KC_LEFT);
+            break;
+
+        case 3:  // Mouse Layer - No encoder action
+        case 4:  // Symbol Layer - No encoder action
+        case 5:  // Number Layer - No encoder action
+        case 6:  // F-Key Layer - No encoder action
+        default:
+            // No action on these layers (as per Vial config)
+            break;
+    }
+}
+
+// Process encoder signals from matrix
+void fix_encoder_action(matrix_row_t current_matrix[]) {
+    bool prevColABPressed = colABPressed;
+    colABPressed = 0;
+
+    // Read encoder pins from matrix
+    if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_A_COL)) {
+        colABPressed |= 1;
+    }
+    if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_B_COL)) {
+        colABPressed |= 2;
+    }
+
+    // Detect rotation direction
+    // State machine: 00 -> 01 -> 11 -> 10 -> 00 (clockwise)
+    //                00 -> 10 -> 11 -> 01 -> 00 (counter-clockwise)
+    if (prevColABPressed == 0 && colABPressed == 1) {
+        turned(true);   // Clockwise
+    } else if (prevColABPressed == 0 && colABPressed == 2) {
+        turned(false);  // Counter-clockwise
+    }
+
+    // Handle button press
+    bool prevEncoderPressed = encoderPressed;
+    encoderPressed = current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL);
+
+    if (encoderPressed && !prevEncoderPressed) {
+        clicked();
+    }
+}
