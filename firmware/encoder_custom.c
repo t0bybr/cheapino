@@ -50,7 +50,7 @@ void fix_encoder_action(matrix_row_t current_matrix[]) {
     static uint8_t prevColABPressed = 0;
     colABPressed = 0;
 
-    // Read encoder pins from matrix
+    // Step 1: Read encoder A/B pins from matrix (for rotation)
     if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_A_COL)) {
         colABPressed |= 1;
     }
@@ -58,12 +58,15 @@ void fix_encoder_action(matrix_row_t current_matrix[]) {
         colABPressed |= 2;
     }
 
-    // IMPORTANT: Clear encoder pins from matrix so they don't register as key presses
+    // Step 2: Read button press status BEFORE clearing matrix
+    bool currentPressed = current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL);
+
+    // Step 3: NOW clear encoder pins from matrix so they don't register as key presses
     current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_A_COL);
     current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_B_COL);
     current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_BUTTON_COL);
 
-    // Detect rotation direction with proper state machine
+    // Step 4: Detect rotation direction with proper state machine
     // State transitions:
     // Clockwise:     00 -> 10 -> 11 -> 01 -> 00
     // Counter-CW:    00 -> 01 -> 11 -> 10 -> 00
@@ -78,14 +81,9 @@ void fix_encoder_action(matrix_row_t current_matrix[]) {
     }
     prevColABPressed = colABPressed;
 
-    // Handle button press
-    bool currentPressed = encoderPressed;  // Use previous state, don't read from matrix again
-    if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL)) {
-        encoderPressed = true;
-        if (!currentPressed) {
-            clicked();
-        }
-    } else {
-        encoderPressed = false;
+    // Step 5: Handle button press
+    if (currentPressed && !encoderPressed) {
+        clicked();
     }
+    encoderPressed = currentPressed;
 }
