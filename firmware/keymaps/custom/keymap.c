@@ -159,7 +159,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
 
   // Position 5-9: Rechts Reihe 1
-  KC_NO,   KC_WH_D, KC_MS_U, KC_WH_U, KC_NO,
+  KC_NO,   KC_WH_U, KC_MS_U, KC_WH_D, KC_NO,
 
   // Position 10-14: Links Reihe 2
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
