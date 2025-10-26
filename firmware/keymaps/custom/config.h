@@ -24,11 +24,9 @@
 // Debounce
 #define DEBOUNCE 5
 
-// RP2040 Double-Tap Reset for Bootloader Access
-// Press the reset button twice quickly to enter bootloader mode
-#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET
-#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET_LED GP17  // LED blinks during reset window
-#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET_TIMEOUT 500  // 500ms window for double-tap
+// Bootloader Access:
+// Hold BOOTSEL button while plugging in USB to enter bootloader mode
+// (Double-tap reset requires a physical reset button, which this board doesn't have)
 
 // RGB/LED (if applicable)
 // #define RGB_MATRIX_ENABLE

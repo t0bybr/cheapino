@@ -419,33 +419,44 @@ bool achordion_eager_mod(uint16_t keycode) {
     }
 }
 
-// LED Layer Indicator
+// LED brightness (0-255, lower = dimmer)
+#define LED_BRIGHTNESS 50  // Reduced from default 255
+
+// Track homerow mod state for LED feedback
+static bool homerow_mod_active = false;
+
+// LED Layer Indicator with reduced brightness
 // Set LED color based on active layer
 layer_state_t layer_state_set_user(layer_state_t state) {
+    // Don't change LED if homerow mod is active (white LED)
+    if (homerow_mod_active) {
+        return state;
+    }
+
     switch (get_highest_layer(state)) {
         case _BASE:
-            rgblight_sethsv_noeeprom(0, 0, 0);     // Off/White - Base layer
+            rgblight_sethsv_noeeprom(0, 0, 0);              // Off - Base layer
             break;
         case _MEDIA:
-            rgblight_sethsv_noeeprom(HSV_CYAN);    // Cyan - Media
+            rgblight_sethsv_noeeprom(128, 255, LED_BRIGHTNESS);  // Cyan - Media
             break;
         case _NAV:
-            rgblight_sethsv_noeeprom(HSV_BLUE);    // Blue - Navigation
+            rgblight_sethsv_noeeprom(170, 255, LED_BRIGHTNESS);  // Blue - Navigation
             break;
         case _MOUSE:
-            rgblight_sethsv_noeeprom(HSV_GREEN);   // Green - Mouse
+            rgblight_sethsv_noeeprom(85, 255, LED_BRIGHTNESS);   // Green - Mouse
             break;
         case _SYM_R:
-            rgblight_sethsv_noeeprom(HSV_MAGENTA); // Magenta - Symbols
+            rgblight_sethsv_noeeprom(213, 255, LED_BRIGHTNESS);  // Magenta - Symbols
             break;
         case _NUM:
-            rgblight_sethsv_noeeprom(HSV_ORANGE);  // Orange - Numbers
+            rgblight_sethsv_noeeprom(28, 255, LED_BRIGHTNESS);   // Orange - Numbers
             break;
         case _FKEY:
-            rgblight_sethsv_noeeprom(HSV_PURPLE);  // Purple - F-Keys
+            rgblight_sethsv_noeeprom(191, 255, LED_BRIGHTNESS);  // Purple - F-Keys
             break;
         default:
-            rgblight_sethsv_noeeprom(HSV_RED);     // Red - Unknown layer
+            rgblight_sethsv_noeeprom(0, 255, LED_BRIGHTNESS);    // Red - Unknown layer
             break;
     }
     return state;
@@ -458,13 +469,60 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
-    // Add custom keycode handling here if needed in the future
+    // Track homerow mod activation for LED feedback
+    bool is_homerow_mod = false;
+    switch (keycode) {
+        case HM_A:
+        case HM_R:
+        case HM_S:
+        case HM_T:
+        case HM_N:
+        case HM_E:
+        case HM_I:
+        case HM_O:
+            is_homerow_mod = true;
+            break;
+    }
+
+    if (is_homerow_mod) {
+        if (record->event.pressed) {
+            // Key pressed - wait for it to be held
+        } else {
+            // Key released - turn off white LED
+            if (homerow_mod_active) {
+                homerow_mod_active = false;
+                // Restore layer color
+                layer_state_set_user(layer_state);
+            }
+        }
+    }
 
     return true;
 }
 
-// Matrix scan user
+// Check if homerow mod is being held (called periodically)
 void matrix_scan_user(void) {
     // Run achordion task for home row mods processing
     achordion_task();
+
+    // Check if any homerow mod is being held as modifier
+    static uint16_t hold_timer = 0;
+    bool mod_is_held = (get_mods() & (MOD_MASK_SHIFT | MOD_MASK_CTRL | MOD_MASK_ALT | MOD_MASK_GUI)) != 0;
+
+    if (mod_is_held && !homerow_mod_active) {
+        if (hold_timer == 0) {
+            hold_timer = timer_read();
+        } else if (timer_elapsed(hold_timer) > TAPPING_TERM) {
+            // Mod has been held long enough - activate white LED
+            homerow_mod_active = true;
+            rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS * 2);  // White, slightly brighter
+        }
+    } else if (!mod_is_held) {
+        hold_timer = 0;
+        if (homerow_mod_active) {
+            homerow_mod_active = false;
+            // Restore layer color
+            layer_state_set_user(layer_state);
+        }
+    }
 }

@@ -3,7 +3,6 @@
 
 #include "quantum.h"
 #include "gpio.h"
-#include "encoder.h"
 
 #define COL_SHIFTER ((matrix_row_t)1)
 #define ENC_ROW 1
@@ -48,7 +47,7 @@ static void turned(bool clockwise) {
 
 // Process encoder signals from matrix
 void fix_encoder_action(matrix_row_t current_matrix[]) {
-    bool prevColABPressed = colABPressed;
+    static uint8_t prevColABPressed = 0;
     colABPressed = 0;
 
     // Read encoder pins from matrix
@@ -59,20 +58,26 @@ void fix_encoder_action(matrix_row_t current_matrix[]) {
         colABPressed |= 2;
     }
 
-    // Detect rotation direction
-    // State machine: 00 -> 01 -> 11 -> 10 -> 00 (clockwise)
-    //                00 -> 10 -> 11 -> 01 -> 00 (counter-clockwise)
-    if (prevColABPressed == 0 && colABPressed == 1) {
-        turned(true);   // Clockwise
-    } else if (prevColABPressed == 0 && colABPressed == 2) {
-        turned(false);  // Counter-clockwise
+    // Detect rotation direction with proper state machine
+    // State transitions:
+    // Clockwise:     00 -> 10 -> 11 -> 01 -> 00
+    // Counter-CW:    00 -> 01 -> 11 -> 10 -> 00
+    if (colABPressed != prevColABPressed) {
+        if (prevColABPressed == 0 && colABPressed == 2) {
+            // Start of clockwise rotation
+            turned(true);
+        } else if (prevColABPressed == 0 && colABPressed == 1) {
+            // Start of counter-clockwise rotation
+            turned(false);
+        }
     }
+    prevColABPressed = colABPressed;
 
     // Handle button press
-    bool prevEncoderPressed = encoderPressed;
-    encoderPressed = current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL);
+    bool currentPressed = current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL);
 
-    if (encoderPressed && !prevEncoderPressed) {
+    if (currentPressed && !encoderPressed) {
         clicked();
     }
+    encoderPressed = currentPressed;
 }

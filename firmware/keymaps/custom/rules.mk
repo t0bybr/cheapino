@@ -22,8 +22,5 @@ LTO_ENABLE = yes               # Link Time Optimization
 SPACE_CADET_ENABLE = no        # Space cadet shift
 GRAVE_ESC_ENABLE = no          # Grave escape
 
-# RP2040-specific features
-RP2040_BOOTLOADER_DOUBLE_TAP_RESET = yes  # Enable double-tap reset for bootloader
-
 # Custom source files
 SRC += features/achordion.c    # Achordion for better home row mods
