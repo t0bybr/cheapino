@@ -28,7 +28,25 @@ cheapino/
 └── README.md                  # Diese Datei
 ```
 
-## Quick Start
+## 🚀 Schnellstart - Vorkompilierte Firmware
+
+**Keine Lust auf lokales Setup?** Die Firmware wird automatisch über GitHub Actions kompiliert!
+
+### Download der fertigen Firmware:
+
+1. Gehe zu **[Actions](../../actions)** in diesem Repository
+2. Klicke auf den neuesten erfolgreichen Workflow-Run (grüner Haken ✅)
+3. Scrolle nach unten zu **"Artifacts"**
+4. Lade **`cheapino-firmware`** herunter (enthält die `.uf2` Datei)
+5. Entpacke das ZIP und flashe die `.uf2` Datei auf dein Cheapino:
+   - BOOT-Taste am RP2040 drücken und halten
+   - USB einstecken
+   - `.uf2` Datei auf das erschienene USB-Laufwerk ziehen
+   - Fertig! 🎉
+
+## 🛠️ Lokales Setup (Fortgeschritten)
+
+Falls du die Firmware selbst anpassen und kompilieren möchtest:
 
 ### 1. QMK Setup (Windows)
 ```bash

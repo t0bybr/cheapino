@@ -4,7 +4,9 @@
 #pragma once
 
 // Tapping configuration for Home Row Mods
-#define TAPPING_TERM 200                    // Standard tapping term
+// Override the default TAPPING_TERM from cheapino/config.h (230ms)
+#undef TAPPING_TERM
+#define TAPPING_TERM 200                    // Faster tapping term for home row mods
 #define TAPPING_TERM_PER_KEY                // Allow per-key tapping term
 #define PERMISSIVE_HOLD_PER_KEY             // Allow per-key permissive hold
 #define HOLD_ON_OTHER_KEY_PRESS_PER_KEY     // Allow per-key hold on other key press
@@ -14,16 +16,6 @@
 
 // Achordion settings (requires achordion.c)
 #define ACHORDION_STREAK                    // Enable streak detection
-
-// Combo configuration
-#define COMBO_TERM 50
-
-// Repeat Key configuration
-#define REPEAT_KEY_ENABLE
-#define ALT_REPEAT_KEY_ENABLE
-
-// Encoder configuration
-#define ENCODER_RESOLUTION 4
 
 // Performance optimizations
 #define FORCE_NKRO                          // N-Key Rollover

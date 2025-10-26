@@ -4,6 +4,7 @@
 // https://getreuer.info/posts/keyboards/achordion
 
 #include "achordion.h"
+#include <string.h>
 
 // Default timeout: 1000ms
 #ifndef ACHORDION_TIMEOUT
@@ -14,7 +15,14 @@ static struct {
     uint16_t keycode;
     uint16_t timer;
     keyrecord_t record;
-} achordion_state = {KC_NO, 0, {0}};
+} achordion_state;
+
+// Initialize achordion state
+static void achordion_init(void) {
+    achordion_state.keycode = KC_NO;
+    achordion_state.timer = 0;
+    memset(&achordion_state.record, 0, sizeof(keyrecord_t));
+}
 
 __attribute__((weak)) uint16_t achordion_timeout(uint16_t tap_hold_keycode) {
     return ACHORDION_TIMEOUT;
@@ -34,6 +42,13 @@ __attribute__((weak)) bool achordion_eager_mod(uint16_t keycode) {
 }
 
 void achordion_task(void) {
+    // Initialize on first call
+    static bool initialized = false;
+    if (!initialized) {
+        achordion_init();
+        initialized = true;
+    }
+
     if (achordion_state.keycode != KC_NO &&
         timer_elapsed(achordion_state.timer) >
         achordion_timeout(achordion_state.keycode)) {
