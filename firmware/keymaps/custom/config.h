@@ -32,17 +32,26 @@
 // #define RGB_MATRIX_ENABLE
 
 // Mouse key speed and acceleration
-#define MOUSEKEY_DELAY              0
-#define MOUSEKEY_INTERVAL           10
-#define MOUSEKEY_MOVE_DELTA         16
-#define MOUSEKEY_INITIAL_SPEED      100
-#define MOUSEKEY_BASE_SPEED         5000
-#define MOUSEKEY_DECELERATED_SPEED  400
-#define MOUSEKEY_ACCELERATED_SPEED  3000
+// #define MOUSEKEY_DELAY              0
+// #define MOUSEKEY_INTERVAL           10
+// #define MOUSEKEY_MOVE_DELTA         16
+// #define MOUSEKEY_INITIAL_SPEED      100
+// #define MOUSEKEY_BASE_SPEED         5000
+// #define MOUSEKEY_DECELERATED_SPEED  400
+// #define MOUSEKEY_ACCELERATED_SPEED  3000
 
 #define MOUSEKEY_WHEEL_INITIAL_MOVEMENTS         16
 #define MOUSEKEY_WHEEL_BASE_MOVEMENTS            32
 #define MOUSEKEY_WHEEL_ACCELERATED_MOVEMENTS     48
 #define MOUSEKEY_WHEEL_DECELERATED_MOVEMENTS     8
 
-#define MK_KINETIC_SPEED
+// #define MK_KINETIC_SPEED
+
+#define MOUSEKEY_INERTIA
+
+#define MOUSEKEY_DELAY              100
+#define MOUSEKEY_INTERVAL           16
+#define MOUSEKEY_MAX_SPEED          42
+#define MOUSEKEY_TIME_TO_MAX        32
+#define MOUSEKEY_FRICTION           20
+#define MOUSEKEY_MOVE_DELTA         1
