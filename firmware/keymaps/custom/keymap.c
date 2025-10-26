@@ -261,7 +261,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
 
   // Position 5-9: Rechts Reihe 1
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   QK_BOOT,
+  KC_NO,   KC_NO,   KC_NO,   QK_REBOOT,   QK_BOOT,
 
   // Position 10-14: Links Reihe 2 (reversed)
   KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
