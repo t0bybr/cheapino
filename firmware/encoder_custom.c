@@ -1,25 +1,25 @@
-// Custom Encoder Implementation for Cheapino with Layer-specific Actions
-// Based on original cheapino/encoder.c with modifications for layer support
+// Original Cheapino encoder.c with custom layer-specific actions
+// Based on: https://github.com/tompi/qmk_firmware/blob/cheapinov2/keyboards/cheapino/encoder.c
 
+#include "matrix.h"
 #include "quantum.h"
-#include "gpio.h"
 
-#define COL_SHIFTER ((matrix_row_t)1)
-#define ENC_ROW 1
-#define ENC_A_COL 5
-#define ENC_B_COL 0
-#define ENC_BUTTON_COL 4
+#define COL_SHIFTER ((uint16_t)1)
 
-static uint8_t colABPressed = 0;
+#define ENC_ROW 3
+#define ENC_A_COL 2
+#define ENC_B_COL 4
+#define ENC_BUTTON_COL 0
+
+static bool colABPressed   = false;
 static bool encoderPressed = false;
 
-// Handle encoder button click
-static void clicked(void) {
-    tap_code(KC_MPLY);  // Media Play/Pause
+void clicked(void) {
+    tap_code(KC_MPLY);
 }
 
-// Handle encoder rotation based on active layer
-static void turned(bool clockwise) {
+// Custom turned() function with layer-specific actions (from Vial config)
+void turned(bool clockwise) {
     uint8_t layer = get_highest_layer(layer_state);
 
     switch (layer) {
@@ -45,45 +45,38 @@ static void turned(bool clockwise) {
     }
 }
 
-// Process encoder signals from matrix
+// Original fix_encoder_action() - DO NOT MODIFY!
 void fix_encoder_action(matrix_row_t current_matrix[]) {
-    static uint8_t prevColABPressed = 0;
-    colABPressed = 0;
+    matrix_row_t encoder_row = current_matrix[ENC_ROW];
 
-    // Step 1: Read encoder A/B pins from matrix (for rotation)
-    if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_A_COL)) {
-        colABPressed |= 1;
+    if (encoder_row & (COL_SHIFTER << ENC_BUTTON_COL)) {
+        encoderPressed = true;
+    } else {
+        // Only trigger click on release
+        if (encoderPressed) {
+            encoderPressed = false;
+            clicked();
+        }
     }
-    if (current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_B_COL)) {
-        colABPressed |= 2;
-    }
 
-    // Step 2: Read button press status BEFORE clearing matrix
-    bool currentPressed = current_matrix[ENC_ROW] & (COL_SHIFTER << ENC_BUTTON_COL);
+    // Check which way the encoder is turned:
+    bool colA = encoder_row & (COL_SHIFTER << ENC_A_COL);
+    bool colB = encoder_row & (COL_SHIFTER << ENC_B_COL);
 
-    // Step 3: NOW clear encoder pins from matrix so they don't register as key presses
-    current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_A_COL);
-    current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_B_COL);
-    current_matrix[ENC_ROW] &= ~(COL_SHIFTER << ENC_BUTTON_COL);
-
-    // Step 4: Detect rotation direction with proper state machine
-    // State transitions:
-    // Clockwise:     00 -> 10 -> 11 -> 01 -> 00
-    // Counter-CW:    00 -> 01 -> 11 -> 10 -> 00
-    if (colABPressed != prevColABPressed) {
-        if (prevColABPressed == 0 && colABPressed == 2) {
-            // Start of clockwise rotation
+    if (colA && colB) {
+        colABPressed = true;
+    } else if (colA) {
+        if (colABPressed) {
+            // A+B followed by A means clockwise
+            colABPressed = false;
             turned(true);
-        } else if (prevColABPressed == 0 && colABPressed == 1) {
-            // Start of counter-clockwise rotation
+        }
+    } else if (colB) {
+        if (colABPressed) {
+            // A+B followed by B means counter-clockwise
+            colABPressed = false;
             turned(false);
         }
     }
-    prevColABPressed = colABPressed;
-
-    // Step 5: Handle button press
-    if (currentPressed && !encoderPressed) {
-        clicked();
-    }
-    encoderPressed = currentPressed;
+    current_matrix[ENC_ROW] = 0;
 }
