@@ -25,4 +25,5 @@ GRAVE_ESC_ENABLE = no          # Grave escape
 
 # Custom source files
 SRC += features/achordion.c    # Achordion for better home row mods
-SRC += features/orbital_mouse.c  # Orbital Mouse by Pascal Getreuer
+
+COMMUNITY_MODULES += getreuer/orbital_mouse
