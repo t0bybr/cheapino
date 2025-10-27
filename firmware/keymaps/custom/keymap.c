@@ -4,7 +4,6 @@
 
 #include QMK_KEYBOARD_H
 #include "features/achordion.h"
-#include "features/orbital_mouse.h"
 
 // Layer definitions
 enum layers {

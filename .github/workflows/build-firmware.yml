@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - 'firmware/**'
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,6 +32,13 @@ jobs:
           path: qmk_firmware
           submodules: recursive
 
+      # NEU: Community Modules hinzufügen
+      - name: Install Community Modules (getreuer)
+        run: |
+          cd qmk_firmware
+          mkdir -p modules
+          git clone https://github.com/getreuer/qmk-modules.git modules/getreuer
+
       - name: Install QMK CLI
         run: |
           python3 -m pip install --upgrade pip
@@ -49,6 +56,16 @@ jobs:
       - name: Copy custom encoder with layer support
         run: |
           cp cheapino-config/firmware/encoder_custom.c qmk_firmware/keyboards/cheapino/encoder.c
+
+      # NEU: Debug-Ausgabe (optional, zum Testen)
+      - name: Verify module installation
+        run: |
+          ls -la qmk_firmware/modules/
+          ls -la qmk_firmware/modules/getreuer/
+          if [ -f "qmk_firmware/keyboards/cheapino/keymaps/custom/keymap.json" ]; then
+            echo "keymap.json found:"
+            cat qmk_firmware/keyboards/cheapino/keymaps/custom/keymap.json
+          fi
 
       - name: Compile firmware
         run: |
