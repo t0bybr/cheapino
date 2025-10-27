@@ -1,7 +1,8 @@
 # Custom Cheapino Keymap Build Rules
 
 # Enable core features
-MOUSEKEY_ENABLE = no            # Disabled - using Orbital Mouse instead
+MOUSEKEY_ENABLE = no            # Standard Mouse Keys disabled (using Orbital Mouse)
+MOUSE_ENABLE = yes              # Mouse Reports required for Orbital Mouse
 EXTRAKEY_ENABLE = yes           # Audio control and System control
 CONSOLE_ENABLE = no             # Console for debug
 COMMAND_ENABLE = no             # Commands for debug and configuration
