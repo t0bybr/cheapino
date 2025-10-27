@@ -164,16 +164,16 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      */
     [_MOUSE] = LAYOUT_split_3x5_3(
   // Position 0-4: Links Reihe 1
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  KC_NO,   OM_SLOW,   OM_W_U,   OM_FAST,   KC_NO,
 
   // Position 5-9: Rechts Reihe 1 (Orbital Mouse: Wheel + Forward)
-  KC_NO,   OM_W_D,  OM_U,    OM_W_U,  KC_NO,
+  OM_HLDS,   OM_BTNS,  OM_U,    OM_DBLS,  KC_NO,
 
   // Position 10-14: Links Reihe 2
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  KC_NO,   OM_W_L,   OM_W_D,   OM_W_R,   KC_NO,
 
   // Position 15-17: Rechts Reihe 2, Tasten 1-3 (Orbital Mouse: Steering)
-           KC_NO,   OM_L,    OM_D,
+  OM_RELS,   OM_L,    OM_D,
 
   // Position 18-19: Rechts Reihe 2, Tasten 4-5 (Orbital Mouse: Steering)
   OM_R,    KC_NO,
@@ -188,7 +188,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_NO,   KC_NO,   _______,
 
   // Position 33-35: Rechts Daumen (Orbital Mouse: Buttons)
-  OM_BTN2, OM_BTN1, OM_BTN3
+  OM_SEL2, OM_SEL1, OM_SEL3
     ),
 
     /*
