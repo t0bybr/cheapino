@@ -48,7 +48,16 @@ jobs:
         run: |
           cd qmk_firmware
           qmk setup -y -H $(pwd)
-
+      - name: Check QMK version
+              run: |
+                cd qmk_firmware
+                qmk --version
+                echo "=== Checking for Community Modules support ==="
+                if [ -f "builddefs/community_module.mk" ]; then
+                  echo "✓ Community Modules supported"
+                else
+                  echo "✗ Community Modules NOT supported (need QMK 0.28.0+)"
+                fi
       - name: Copy custom keymap
         run: |
           cp -r cheapino-config/firmware/keymaps/custom qmk_firmware/keyboards/cheapino/keymaps/
