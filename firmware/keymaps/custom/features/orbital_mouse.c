@@ -14,9 +14,9 @@
 
 /**
  * @file orbital_mouse.c
- * @brief Orbital Mouse implementation
+ * @brief Orbital Mouse community module implementation
  *
- * For full documentation, see
+ * For documentation, see
  * <https://getreuer.info/posts/keyboards/orbital-mouse>
  */
 
@@ -34,9 +34,28 @@
 #ifndef ORBITAL_MOUSE_WHEEL_SPEED
 #define ORBITAL_MOUSE_WHEEL_SPEED 0.2
 #endif  // ORBITAL_MOUSE_WHEEL_SPEED
+#ifndef ORBITAL_MOUSE_FAST_MOVE_FACTOR
+#define ORBITAL_MOUSE_FAST_MOVE_FACTOR 3.0
+#endif  // ORBITAL_MOUSE_SLOW_MOVE_FACTOR
+#ifndef ORBITAL_MOUSE_FAST_TURN_FACTOR
+#define ORBITAL_MOUSE_FAST_TURN_FACTOR 2.0
+#endif  // ORBITAL_MOUSE_SLOW_TURN_FACTOR
 #ifndef ORBITAL_MOUSE_DBL_DELAY_MS
 #define ORBITAL_MOUSE_DBL_DELAY_MS 50
 #endif  // ORBITAL_MOUSE_DBL_DELAY_MS
+#ifdef ORBITAL_MOUSE_FLAT_SPEED
+
+#ifdef ORBITAL_MOUSE_SPEED_CURVE
+#warning "Ignoring ORBITAL_MOUSE_SPEED_CURVE, since ORBITAL_MOUSE_FLAT_SPEED is also defined."
+#undef ORBITAL_MOUSE_SPEED_CURVE
+#endif // ORBITAL_MOUSE_SPEED_CURVE
+
+#define ORBITAL_MOUSE_SPEED_CURVE \
+      {ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, \
+       ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, \
+       ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, \
+       ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED, ORBITAL_MOUSE_FLAT_SPEED}
+#endif  // ORBITAL_MOUSE_FLAT_SPEED
 #ifndef ORBITAL_MOUSE_SPEED_CURVE
 #define ORBITAL_MOUSE_SPEED_CURVE \
       {24, 24, 24, 32, 58, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66, 66}
@@ -51,17 +70,6 @@
 #error "Invalid ORBITAL_MOUSE_RADIUS. Value must be in [0, 63]."
 #endif
 
-#if !defined(IS_MOUSE_KEYCODE)
-// Attempt to detect out-of-date QMK installation, which would fail with
-// implicit-function-declaration errors in the code below.
-#error "orbital_mouse: QMK version is too old to build. Please update QMK."
-#elif !defined(MOUSE_ENABLE)
-// This library makes use of mouse reports, which QMK implements only when it
-// is enabled. Enable the mouse in your rules.mk by setting:
-//   MOUSE_ENABLE = yes
-#error "orbital_mouse: Please set `MOUSE_ENABLE = yes` in rules.mk."
-#else
-
 enum {
   /** Number of distinct angles. */
   NUM_ANGLES = 64,
@@ -75,12 +83,20 @@ enum {
   /** Slow mode turn speed factor as a Q.8 value. */
   SLOW_TURN_FACTOR_Q_8 = (ORBITAL_MOUSE_SLOW_TURN_FACTOR) < 0.99
       ? ((uint8_t)((ORBITAL_MOUSE_SLOW_TURN_FACTOR) * 256 + 0.5)) : 255,
+  /** Fast mode movement speed factor as a Q4.4 value. */
+  FAST_MOVE_FACTOR_Q4_4 = (ORBITAL_MOUSE_FAST_MOVE_FACTOR) < 15.999
+      ? ((uint8_t)((ORBITAL_MOUSE_FAST_MOVE_FACTOR) * 16 + 0.5)) : 255,
+  /** Fast mode turn speed factor as a Q4.4 value. */
+  FAST_TURN_FACTOR_Q4_4 = (ORBITAL_MOUSE_FAST_TURN_FACTOR) < 15.99
+      ? ((uint8_t)((ORBITAL_MOUSE_FAST_TURN_FACTOR) * 16 + 0.5)) : 255,
   /** Wheel speed in steps/frame as a Q2.6 value. */
   WHEEL_SPEED_Q2_6 = (ORBITAL_MOUSE_WHEEL_SPEED) < 3.99
       ? ((uint8_t)((ORBITAL_MOUSE_WHEEL_SPEED) * 64 + 0.5)) : 255,
   /** Double click delay in units of intervals. */
   DOUBLE_CLICK_DELAY_INTERVALS =
       (ORBITAL_MOUSE_DBL_DELAY_MS) / (ORBITAL_MOUSE_INTERVAL_MS),
+
+      
 };
 
 // Masks for the `held_keys` bitfield.
@@ -130,6 +146,9 @@ static struct {
   uint8_t double_click_frame;
   // When true, movement and turning are slower.
   bool slow;
+  // When true, movement and turning are faster.
+  bool fast;
+  // if slow and fast are both true then fast is ignored.
 } state = {.speed_curve = init_speed_curve};
 
 /**
@@ -227,10 +246,9 @@ void set_orbital_mouse_angle(uint8_t angle) {
   set_orbital_mouse_angle_fractional((uint16_t)angle << 8);
 }
 
-bool process_orbital_mouse(uint16_t keycode, keyrecord_t* record) {
-  if (!(IS_MOUSE_KEYCODE(keycode) ||
-        (ORBITAL_MOUSE_KEYCODE_RANGE_START <= keycode &&
-         keycode <= ORBITAL_MOUSE_KEYCODE_RANGE_END))) {
+bool process_record_orbital_mouse(uint16_t keycode, keyrecord_t* record) {
+  if (!(IS_MOUSE_KEYCODE(keycode)  ||
+        (OM_FAST <= keycode && keycode <= OM_SEL8))) {
     return true;
   }
 
@@ -268,6 +286,9 @@ bool process_orbital_mouse(uint16_t keycode, keyrecord_t* record) {
       case OM_SLOW:
         state.slow = record->event.pressed;
         return false;
+      case OM_FAST:
+       state.fast = record->event.pressed;
+        return false;
       case OM_SEL1 ... OM_SEL8:
         if (record->event.pressed) {
           select_mouse_button(keycode - OM_SEL1);
@@ -292,7 +313,7 @@ bool process_orbital_mouse(uint16_t keycode, keyrecord_t* record) {
   return false;
 }
 
-void orbital_mouse_task(void) {
+void housekeeping_task_orbital_mouse(void) {
   const uint16_t now = timer_read();
   if (!state.timer || !timer_expired(now, state.timer)) {
     return;
@@ -319,6 +340,9 @@ void orbital_mouse_task(void) {
     if (state.slow) {
       speed = ((uint16_t)speed) * (1 + (uint16_t)SLOW_MOVE_FACTOR_Q_8) >> 8;
     }
+    else if (state.fast) {
+      speed = ((uint16_t)speed) * (1 + (uint16_t)FAST_MOVE_FACTOR_Q4_4) >> 4;
+    }
 
     state.x -= state.move_dir * scaled_sin(speed, state.angle >> 8);
     state.y -= state.move_dir * scaled_cos(speed, state.angle >> 8);
@@ -327,7 +351,7 @@ void orbital_mouse_task(void) {
 
   // Update heading angle if steering.
   if (state.steer_dir) {
-    int16_t angle_step = state.slow ? SLOW_TURN_FACTOR_Q_8 : 256;
+    int16_t angle_step = state.slow ? SLOW_TURN_FACTOR_Q_8 : (state.fast ? FAST_TURN_FACTOR_Q4_4 << 4: 256);
     if (state.steer_dir == -1) {
       angle_step = -angle_step;
     }
@@ -373,6 +397,3 @@ void orbital_mouse_task(void) {
   state.wheel_y -= (int16_t)state.report.v * 64;
   host_mouse_send(&state.report);
 }
-
-#endif
-
