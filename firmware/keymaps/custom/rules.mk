@@ -1,7 +1,7 @@
 # Custom Cheapino Keymap Build Rules
 
 # Enable core features
-MOUSEKEY_ENABLE = yes           # Mouse keys
+MOUSEKEY_ENABLE = no            # Disabled - using Orbital Mouse instead
 EXTRAKEY_ENABLE = yes           # Audio control and System control
 CONSOLE_ENABLE = no             # Console for debug
 COMMAND_ENABLE = no             # Commands for debug and configuration
@@ -24,3 +24,4 @@ GRAVE_ESC_ENABLE = no          # Grave escape
 
 # Custom source files
 SRC += features/achordion.c    # Achordion for better home row mods
+SRC += features/orbital_mouse.c  # Orbital Mouse by Pascal Getreuer

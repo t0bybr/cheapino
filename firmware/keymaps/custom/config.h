@@ -31,13 +31,20 @@
 // RGB/LED (if applicable)
 // #define RGB_MATRIX_ENABLE
 
-// Mouse key speed and acceleration
-#define MOUSEKEY_DELAY 0
-#define MOUSEKEY_INTERVAL 16
-#define MOUSEKEY_MOVE_DELTA 8
-#define MOUSEKEY_MAX_SPEED 7
-#define MOUSEKEY_TIME_TO_MAX 40
-#define MOUSEKEY_WHEEL_DELAY 0
-#define MOUSEKEY_WHEEL_INTERVAL 50
-#define MOUSEKEY_WHEEL_MAX_SPEED 8
-#define MOUSEKEY_WHEEL_TIME_TO_MAX 40
+// Orbital Mouse configuration (optional - defaults are fine for most users)
+// See: https://getreuer.info/posts/keyboards/orbital-mouse
+// #define ORBITAL_MOUSE_SPEED 200      // Speed of pointer movement (default: 200)
+// #define ORBITAL_MOUSE_STEERING 30    // How quickly heading changes (default: 30)
+// #define ORBITAL_MOUSE_FRICTION 0.9   // Friction coefficient (default: 0.9)
+
+// Note: Standard Mouse Keys are disabled (using Orbital Mouse instead)
+// The following settings are kept for reference but not active:
+// #define MOUSEKEY_DELAY 0
+// #define MOUSEKEY_INTERVAL 16
+// #define MOUSEKEY_MOVE_DELTA 8
+// #define MOUSEKEY_MAX_SPEED 7
+// #define MOUSEKEY_TIME_TO_MAX 40
+// #define MOUSEKEY_WHEEL_DELAY 0
+// #define MOUSEKEY_WHEEL_INTERVAL 50
+// #define MOUSEKEY_WHEEL_MAX_SPEED 8
+// #define MOUSEKEY_WHEEL_TIME_TO_MAX 40

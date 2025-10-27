@@ -1,9 +1,10 @@
 // Custom Cheapino Keymap
 // Converted from Vial config with enhanced QMK features
-// Features: Achordion, Repeat Key, Auto-repeat Backspace
+// Features: Achordion, Repeat Key, Auto-repeat Backspace, Orbital Mouse
 
 #include QMK_KEYBOARD_H
 #include "features/achordion.h"
+#include "features/orbital_mouse.h"
 
 // Layer definitions
 enum layers {
@@ -151,27 +152,34 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     /*
-     * Mouse Layer
+     * Mouse Layer - mit Orbital Mouse Support
      * Vial Layer 3 korrekt gemappt
+     *
+     * Orbital Mouse Layout (rechts):
+     *   Reihe 1: WH_D, UP,   WH_U
+     *   Reihe 2: LEFT, DOWN, RIGHT (Steering)
+     *   Reihe 3: - - -
+     *
+     * Standard QMK Mouse als Fallback (noch verfügbar)
      */
     [_MOUSE] = LAYOUT_split_3x5_3(
   // Position 0-4: Links Reihe 1
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
 
-  // Position 5-9: Rechts Reihe 1
-  KC_NO,   KC_WH_D, KC_MS_U, KC_WH_U, KC_NO,
+  // Position 5-9: Rechts Reihe 1 (Orbital Mouse: Wheel + Forward)
+  KC_NO,   OM_W_D,  OM_U,    OM_W_U,  KC_NO,
 
   // Position 10-14: Links Reihe 2
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
 
-  // Position 15-17: Rechts Reihe 2, Tasten 1-3
-           KC_WH_L, KC_MS_L, KC_MS_D,
+  // Position 15-17: Rechts Reihe 2, Tasten 1-3 (Orbital Mouse: Steering)
+           KC_NO,   OM_L,    OM_D,
 
-  // Position 18-19: Rechts Reihe 2, Tasten 4-5
-  KC_MS_R, KC_WH_R,
+  // Position 18-19: Rechts Reihe 2, Tasten 4-5 (Orbital Mouse: Steering)
+  OM_R,    KC_NO,
 
-  // Position 20-24: Links Reihe 3 (Acceleration reversed)
-  KC_NO,   KC_ACL0, KC_ACL1, KC_ACL2, KC_NO,
+  // Position 20-24: Links Reihe 3
+  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
 
   // Position 25-29: Rechts Reihe 3
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
@@ -179,8 +187,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // Position 30-32: Links Daumen
   KC_NO,   KC_NO,   _______,
 
-  // Position 33-35: Rechts Daumen
-  KC_BTN2, KC_BTN1, KC_BTN3
+  // Position 33-35: Rechts Daumen (Orbital Mouse: Buttons)
+  OM_BTN2, OM_BTN1, OM_BTN3
     ),
 
     /*
@@ -471,6 +479,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
+    // Process orbital mouse
+    if (!process_orbital_mouse(keycode, record)) {
+        return false;
+    }
+
     // Track homerow mod activation for LED feedback
     bool is_homerow_mod = false;
     switch (keycode) {
@@ -527,4 +540,9 @@ void matrix_scan_user(void) {
             layer_state_set_user(layer_state);
         }
     }
+}
+
+// Housekeeping task for Orbital Mouse
+void housekeeping_task_user(void) {
+    orbital_mouse_task();
 }
