@@ -16,7 +16,7 @@
 #define HOLD_ON_OTHER_KEY_PRESS_PER_KEY
 
 // Combos
-#define COMBO_COUNT 4  // Number of combos we define (removed Caps Word combos - using both shifts instead)
+#define COMBO_COUNT 3  // Leader combo removed (DEL is Leader directly)
 #define COMBO_TERM 100  // Time window for combo detection (ms) - increased for easier triggering
 
 // Leader Key
@@ -54,3 +54,6 @@
 // BOTH_SHIFTS_TURNS_ON_CAPS_WORD is already active from keyboard/cheapinov2/config.h
 
 // Repeat Key is built-in, no config needed
+
+// RGB lighting: enable rgblight layers for non-blocking overlays
+#define RGBLIGHT_LAYERS

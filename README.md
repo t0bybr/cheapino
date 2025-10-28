@@ -1,6 +1,6 @@
 # Cheapino v2 - Toby's Keymap Features & Dokumentation
 
-**Stand:** 28. Oktober 2025 - **Version 2.2**
+**Stand:** 28. Oktober 2025 - **Version 2.4**
 **QMK Version:** 0.30.6
 **Keyboard:** Cheapino v2 (RP2040)
 **Layout:** Colemak mit Home Row Mods
@@ -13,10 +13,10 @@
 
 1. **Chordal Hold** - Home Row Mods mit intelligenter Same-Hand/Opposite-Hand Detection
 2. **OS Detection** - Automatische macOS/Linux Erkennung für OS-aware Shortcuts
-3. **Tri-Layer** - Space + Enter = EXTRA Layer
-4. **Combos (4x)** - OS-aware Copy/Paste/Cut + Leader Key
+3. **Tri-Layer** - ENT_SYM + BSP_NUM = FKEY Layer
+4. **Combos (3x)** - OS-aware Copy/Paste/Cut
 5. **Key Overrides** - Shift+Backspace = Delete, Shift+Esc = Tilde
-6. **Leader Key** - Via ESC+DEL Combo (Timeout 800ms)
+6. **Leader Key** - DEL (Timeout 800ms, LED weiß)
 7. **Caps Word** - Beide Shifts aktivieren
 8. **Mouse Keys** - Combined Mode mit Acceleration (3 Geschwindigkeiten)
 9. **Encoder** - Layer-abhängig (BASE=Scroll, MEDIA=Volume, NAV=Arrows)
@@ -25,14 +25,46 @@
 12. **Ctrl+Delete** - OS-aware Wort vorwärts löschen (Ctrl auf Linux, Option auf macOS)
 13. **Shift+Backspace** - Delete mit Autorepeat
 14. **Quick Tap** - Schnelles Backspace-Repeat ohne Layer-Aktivierung
+15. **LED Layer Indicator** - Nicht-blockierende Layerfarben
+16. **OS Boot LED Flash** - Kurzer OS-Farbblitz beim Start
 
 ### ❌ Bewusst deaktiviert (verursachten Probleme):
 
-- **LED Funktionalität** - Blockiert Tastatur komplett (RGBLIGHT problematisch auf RP2040)
-- **Modifier Swap** - Entfernt (Combos müssen manuell OS-aware sein)
 - **Caps Word Combos (S+T, N+E)** - Beide Shifts funktionieren besser
 
 ---
+
+## 🆕 Neueste Änderungen - Version 2.4 (28.10.2025)
+
+### ✨ Änderungen:
+
+1. **Tri-Layer umgestellt**
+   - Jetzt: SYM_R + NUM = FKEY (Daumen: ENT_SYM + BSP_NUM)
+   - Reihenfolge-unabhängig nutzbar
+
+2. **Leader Key vereinfacht**
+   - DEL ist jetzt direkt `QK_LEAD`
+   - LED zeigt während Leader-Timeout Weiß (V=50)
+
+3. **Tasten-Feinschliff**
+   - `)` wieder auf SYM_R (linke mittlere Daumentaste)
+   - `0` auf NUM (linke mittlere Daumentaste)
+
+4. **LED-OS-Flash robuster**
+   - Wartet auf OS-Erkennung, zeigt dann 800ms OS-Farbe (Linux/Windows=Grün, macOS=Magenta)
+
+## 🆕 Neueste Änderungen - Version 2.3 (28.10.2025)
+
+### ✨ Neue Features:
+
+1. **LEDs reaktiviert (nicht-blockierend)**
+   - Layerfarben per `layer_state_set_user()` (ereignisgetrieben)
+   - OS-Farbblitz beim Boot via `defer_exec()`
+   - Keine LED-Updates in `matrix_scan_user()` → kein Lockup mehr
+
+2. **Doku-/Aufräumarbeiten**
+   - Alte LED-Backup-Datei entfernt
+   - VIA-Keymap-Altlast entfernt
 
 ## 🆕 Neueste Änderungen - Version 2.1 (28.10.2025)
 
@@ -52,10 +84,10 @@
 
 ### 📊 Statistik:
 
-- **Combo Count:** 4 (Copy, Paste, Cut, Leader)
+- **Combo Count:** 3 (Copy, Paste, Cut)
 - **COMBO_TERM:** 100ms (zuverlässig)
 - **Layer Count:** 8 (BASE, MEDIA, NAV, MOUSE, SYM_R, NUM, FKEY, EXTRA)
-- **Features aktiv:** 14
+- **Features aktiv:** 16
 - **Code Lines:** ~450
 
 ---
@@ -78,10 +110,9 @@
    - Lösung: OS_DETECTION_DEBUG_ENABLE entfernt
    - Jetzt: Automatisches macOS/Linux Switching
 
-3. **LED-Funktionen entfernt**
-   - Problem: rgblight_* in matrix_scan_user() blockierte Tastatur
-   - Lösung: Alle LED-Funktionen in layer_state_set_user() entfernt
-   - Standard-LED vom Keyboard funktioniert weiterhin (Regenbogen beim Boot)
+3. **LED-Funktionen temporär entfernt** (historisch)
+   - Problem (damals): `rgblight_*` in `matrix_scan_user()` blockierte Tastatur
+   - Heutige Lösung (v2.3): Nur noch ereignisgetriebene Updates + `defer_exec()`
 
 4. **Ctrl+Backspace OS-aware**
    - Linux: Ctrl+Backspace (löscht Wort rückwärts)
@@ -107,9 +138,9 @@
 | **Chordal Hold** | ✅ Aktiv | 0.30+ | - | Same-hand/opposite-hand Detection für HRMs |
 | **OS Detection** | ✅ Aktiv | Core | ✅ | Auto-Erkennung macOS/Linux |
 | **Modifier Swap** | ✅ Aktiv | Core | ✅ | Ctrl↔Gui auf macOS automatisch |
-| **Tri-Layer** | ✅ Aktiv | Core | - | Space+Enter = EXTRA Layer |
+| **Tri-Layer** | ✅ Aktiv | Core | - | ENT_SYM+BSP_NUM = FKEY Layer |
 | **Combos** | ✅ Aktiv | Core | ✅ | Copy/Paste/Cut OS-aware |
-| **Leader Key** | ✅ Aktiv | Core | ✅ | Via ESC+DEL, OS-aware Sequences |
+| **Leader Key** | ✅ Aktiv | Core | ✅ | DEL startet Leader (LED weiß) |
 | **Key Overrides** | ✅ Aktiv | 0.13+ | - | Shift+Esc=Tilde |
 | **Caps Word** | ✅ Aktiv | 0.20+ | - | Beide Shifts |
 | **Repeat Key** | ✅ Aktiv | 0.21+ | - | QK_REP für letzte Taste |
@@ -118,13 +149,14 @@
 | **Shift+Backspace** | ✅ Aktiv | Custom | - | Delete mit Autorepeat |
 | **Ctrl+Backspace** | ✅ Aktiv | Custom | ✅ | Wort rückwärts löschen (OS-aware) |
 | **Ctrl+Delete** | ✅ Aktiv | Custom | ✅ | Wort vorwärts löschen (OS-aware) |
+| **LED Layer Indicator** | ✅ Aktiv | Core | - | Nicht-blockierend, Layerfarben |
+| **OS Boot LED Flash** | ✅ Aktiv | Core | ✅ | OS-Farbblitz beim Start |
 
 ### ❌ Deaktivierte Features
 
 | Feature | Status | Grund | Alternative |
 |---------|--------|-------|-------------|
-| **LED Layer Indicator** | ❌ Deaktiviert | Blockierte Tastatur | Standard-LED vom Keyboard |
-| **Homerow Mod LED** | ❌ Deaktiviert | Blockierte Tastatur | - |
+| **Homerow Mod LED** | ✅ Aktiv | Core | - | Farb-Overlay bei Hold (V=50) |
 | **Caps Word Combos** | ❌ Entfernt | Beide Shifts besser | BOTH_SHIFTS_TURNS_ON_CAPS_WORD |
 
 ---
@@ -136,7 +168,7 @@
 | `X + C` | Ctrl+C | Cmd+C | Copy |
 | `C + V` | Ctrl+V | Cmd+V | Paste |
 | `Z + X` | Ctrl+X | Cmd+X | Cut |
-| `ESC + DEL` | Leader | Leader | Leader Key aktivieren |
+| (entfällt) |  |  | Leader per DEL |
 
 **Config:**
 - `COMBO_COUNT = 4`
@@ -148,8 +180,8 @@
 
 | Sequence | Linux | macOS | Beschreibung |
 |----------|-------|-------|--------------|
-| `ESC+DEL` → `S` → `P` | Super | Cmd+Space | App Launcher |
-| `ESC+DEL` → `T` → `C` | Ctrl+C | Ctrl+C | Terminal Interrupt |
+| `DEL` → `S` → `P` | Super | Cmd+Space | App Launcher |
+| `DEL` → `T` → `C` | Ctrl+C | Ctrl+C | Terminal Interrupt |
 
 **Config:**
 - `LEADER_TIMEOUT = 300ms`
@@ -187,7 +219,7 @@ Navigation auf rechter Hand, Modifier auf linker:
 └──────┴──────┴──────┴──────┴─────┘   └──────┴──────┴──────┴──────┴─────┘
                                        Thumbs: ENT  │      │
 ```
-**Wichtig:** ENT_SYM verfügbar für Tri-Layer!
+**Wichtig:** ENT_SYM + BSP_NUM → FKEY (Tri-Layer)
 
 ### Layer 4: SYM_R (Symbols)
 ```
@@ -201,18 +233,10 @@ Symbole auf linker Hand:
 └──────┴──────┴──────┴──────┴──────┘
 Thumbs:  (   │ SPC  │  _
 ```
-**Wichtig:** SPC_NAV verfügbar für Tri-Layer!
+**Wichtig:** ENT_SYM + BSP_NUM → FKEY (Tri-Layer)
 
-### Layer 7: EXTRA (Tri-Layer)
-```
-Aktiviert wenn NAV + SYM_R gleichzeitig:
-Space halten + Enter drücken = EXTRA Layer
-
-┌──────┬──────┬──────┬──────┬──────┐   ┌──────┬──────┬──────┬──────┬─────┐
-│RESET │      │      │      │      │   │      │      │      │      │     │
-└──────┴──────┴──────┴──────┴──────┘   └──────┴──────┴──────┴──────┴─────┘
-```
-**RESET:** QK_BOOT für Bootloader (Firmware flashen)
+### Layer 7: EXTRA (historisch)
+Früher via NAV + SYM_R; aktuell ungenutzt. Boot via FKEY Layer (QK_BOOT).
 
 ---
 
@@ -251,10 +275,10 @@ Space halten + Enter drücken = EXTRA Layer
 - `rgblight_*` Funktionen liefen zu oft (1000x/s)
 - Tastatur reagierte nicht mehr auf Input
 
-**Lösung:**
-- Alle LED-Funktionen aus keymap.c entfernt
-- Standard-LED vom Keyboard läuft weiterhin (cheapino.c)
-- Regenbogen-Animation beim Boot bleibt erhalten
+**Lösung (v2.3):**
+- LED-Updates aus `matrix_scan_user()` entfernt
+- Layerfarben in `layer_state_set_user()` (nur bei Zustandswechsel)
+- OS-Farbblitz per `defer_exec()` (einmalig beim Boot)
 
 ### ✅ Gelöst: Tri-Layer funktionierte nicht
 
@@ -324,7 +348,6 @@ void matrix_scan_user(void) {
 
 **Problem:**
 - Nach Ctrl+Backspace blieb Ctrl aktiv
-- LED blieb weiß (Homerow Mod aktiv)
 - Modifier State nicht korrekt wiederhergestellt
 
 **Lösung:**
@@ -368,7 +391,7 @@ qmk compile -kb cheapinov2 -km toby
 ### Firmware flashen
 
 **Methode 1: Bootloader via Tri-Layer**
-1. Space halten + Enter drücken = EXTRA Layer
+1. Enter (ENT_SYM) halten + Backspace (BSP_NUM) drücken = FKEY Layer
 2. Q drücken (QK_BOOT)
 3. RPI-RP2 Drive erscheint
 4. `cheapinov2_toby.uf2` auf Drive kopieren
@@ -436,15 +459,13 @@ qmk compile -kb cheapinov2 -km toby
 - ✅ Shift+Backspace mit Autorepeat
 
 **Fixes:**
-- ✅ Tastatur-Lockup behoben (LED-Funktionen entfernt)
+- ✅ Tastatur-Lockup behoben (LED nicht-blockierend implementiert)
 - ✅ Tri-Layer funktioniert mit Layer-Tap
 - ✅ NAV Layer beim schnellen Tippen behoben
 - ✅ Ctrl+Backspace Modifier-State behoben
 - ✅ OS Detection EECONFIG Error behoben
 
 **Entfernt:**
-- ❌ LED Layer Indicator (blockierte Tastatur)
-- ❌ Homerow Mod LED (blockierte Tastatur)
 - ❌ Caps Word Combos (beide Shifts besser)
 
 **Config-Änderungen:**
