@@ -1,0 +1,19 @@
+# Compiled firmware files
+*.uf2
+*.hex
+*.bin
+
+# Build artifacts
+*.o
+*.d
+*.elf
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
