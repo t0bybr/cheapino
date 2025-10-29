@@ -10,6 +10,64 @@
 #include "rgblight.h"
 #include "deferred_exec.h"
 #include "timer.h"
+#include "wait.h"
+
+// Guard window to avoid unintended BSPC quick-tap repeat after other keys
+#ifndef BSP_QT_GUARD_MS
+#define BSP_QT_GUARD_MS 180
+#endif
+
+// Time of last non-BSPC key press (for BSPC quick-tap guard)
+static uint16_t bsp_qt_block_time = 0;
+static uint16_t bsp_last_release_time = 0;
+static uint16_t bsp_last_press_time = 0;
+static bool     bsp_double_ready = false;
+static uint16_t bsp_double_expire_time = 0;
+
+// App switcher toggle state
+static bool app_sw_toggled = false;
+static uint16_t app_sw_last_tab_time = 0;
+static deferred_token app_sw_token = 0;
+static uint16_t app_sw_mod_for_os(void) {
+    os_variant_t os = detected_host_os();
+    if (os == OS_MACOS || os == OS_IOS) return KC_LGUI;   // Cmd
+    if (os == OS_WINDOWS) return KC_LALT;                  // Alt
+    return LINUX_APP_SWITCH_MOD;                           // Linux configurable
+}
+static uint32_t app_sw_autorelease_cb(uint32_t t, void *arg) {
+    (void)t; (void)arg;
+    if (app_sw_toggled && timer_elapsed(app_sw_last_tab_time) >= APP_SW_AUTORELEASE_MS) {
+        unregister_code(app_sw_mod_for_os());
+        app_sw_toggled = false;
+        send_keyboard_report();
+        return 0;
+    }
+    return 200; // keep checking
+}
+
+// =========================
+// MOUSE ACL stage toggling
+// =========================
+static int8_t mouse_acl_stage = -1; // -1 = none, 0/1/2 = held
+static uint16_t acl_code_for(int8_t s) {
+    return (s == 0) ? MS_ACL0 : (s == 1) ? MS_ACL1 : (s == 2) ? MS_ACL2 : KC_NO;
+}
+static void mouse_acl_set(int8_t s) {
+    if (mouse_acl_stage == s) return;
+    if (mouse_acl_stage >= 0) {
+        unregister_code(acl_code_for(mouse_acl_stage));
+        send_keyboard_report();
+    }
+    mouse_acl_stage = s;
+    if (mouse_acl_stage >= 0) {
+        register_code(acl_code_for(mouse_acl_stage));
+        send_keyboard_report();
+    }
+}
+
+// Force NUM layer while BSP_NUM held with second key
+static bool bsp_num_down = false;
+static bool num_forced_hold = false;
 
 // Forward declaration for LED layer application
 static void apply_layer_color(layer_state_t state);
@@ -35,6 +93,12 @@ enum layers {
 // Custom keycodes
 enum custom_keycodes {
     CUSTOM_START = SAFE_RANGE,
+    APP_SW_TOG,   // Toggle app-switch modifier on/off (Cmd/Super/Alt)
+    APP_SW_TAB,   // Send Tab (uses toggle if active, otherwise quick mod+Tab)
+    APP_SW_PREV,  // Quick previous app (mod+Shift+Tab)
+    M_DBL_MOD,
+    M_TGL_MOD,
+    M_MBTN3,
 };
 
 // Global state - homerow_mod_active removed (LED was causing lockup)
@@ -97,20 +161,20 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_NO,   _______, KC_NO,
-  _______, KC_NO,   KC_NO
+  APP_SW_TOG, APP_SW_TAB, APP_SW_PREV
     ),
 
     [_MOUSE] = LAYOUT_split_3x5_3(
-  // QMK Mouse Keys - Combined mode with acceleration
-  KC_NO,   MS_ACL0, MS_WHLU, MS_ACL2, KC_NO,     // Slow, Wheel Up, Fast
-  KC_NO,   MS_BTN1, MS_UP,   MS_BTN2, KC_NO,     // Left click, Mouse Up, Right click
-  KC_NO,   MS_WHLL, MS_WHLD, MS_WHLR, KC_NO,     // Wheel Left/Down/Right
-           MS_ACL1, MS_LEFT, MS_DOWN,             // Medium speed, Mouse Left, Down
-  MS_RGHT, KC_NO,                                  // Mouse Right
+  // Left: S/T modifiers placed on home row positions; Right: wheel/cursor mirrored to NAV
+  KC_NO,   KC_NO,     M_TGL_MOD, M_DBL_MOD, KC_NO,
+  KC_NO,   MS_WHLU,     MS_UP,   MS_WHLD,     KC_NO,
+  KC_NO,   MS_ACL0,     MS_ACL1, MS_ACL2,     KC_NO,
+           MS_WHLL,     MS_LEFT,   MS_DOWN,
+  MS_RGHT,   MS_WHLR,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   _______,
-  MS_BTN1, MS_BTN2, MS_BTN3  // Left, Right, Middle click
+  KC_NO, KC_NO,   KC_NO, KC_NO,   KC_NO,
+  KC_NO,   KC_NO,     _______,
+  M_MBTN3, MS_BTN1,   MS_BTN2
     ),
 
     [_SYM_R] = LAYOUT_split_3x5_3(
@@ -353,14 +417,16 @@ bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
-// Per-key quick tap term - enables fast repeat for Backspace
+// Per-key quick tap term - enables fast repeat for Backspace with guard
 uint16_t get_quick_tap_term(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        // Enable quick tap for Backspace - allows fast repeated taps
         case BSP_NUM:
-            return QUICK_TAP_TERM;  // Use global value (default 100ms)
+            if (timer_elapsed(bsp_qt_block_time) < BSP_QT_GUARD_MS) {
+                return 0;
+            }
+            return 150;
         default:
-            return 0;  // Disabled for other keys
+            return 0;
     }
 }
 
@@ -469,6 +535,8 @@ static bool hm_n_pressed = false;
 static bool bsp_del_active = false;
 static uint8_t bsp_del_saved_mods = 0;
 
+// --- BSPC Quick-Tap guard to avoid accidental repeat when typing a digit after BSPC ---
+
 static void apply_layer_color(layer_state_t state) {
     if (leader_overlay_active) {
         // Leader overlay has highest priority: white at V=50 while waiting
@@ -548,6 +616,13 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     // Tri-Layer: When SYM_R and NUM are both active, activate FKEY
     state = update_tri_layer_state(state, _SYM_R, _NUM, _FKEY);
 
+    // MOUSE ACL default stage on enter, clear on exit
+    if (layer_state_cmp(state, _MOUSE)) {
+        mouse_acl_set(1); // default ACL1 when entering MOUSE
+    } else {
+        mouse_acl_set(-1); // clear when leaving
+    }
+
 #ifdef RGBLIGHT_LAYERS
     apply_layer_color(state);
 #endif
@@ -566,6 +641,10 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 // ============================================================================
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    // Guard: any non-BSPC key press disables BSPC quick-tap repeat briefly
+    if (record->event.pressed && keycode != BSP_NUM) {
+        bsp_qt_block_time = timer_read();
+    }
     // Track BSP_NUM pressed state (for conditional HOOKP on SPC_NAV)
     if (keycode == BSP_NUM) {
         bsp_num_pressed = record->event.pressed;
@@ -685,6 +764,153 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 }
             }
         }
+        // Track down state for NUM forced hold logic
+        if (record->event.pressed) {
+            // Double-press detection for BSPC intent (e.g., BSPC -> BSPC -> SPC_NAV for '0')
+            if (timer_elapsed(bsp_last_press_time) < 120) {
+                bsp_double_ready = true;
+                bsp_double_expire_time = timer_read();
+            } else {
+                bsp_double_ready = false;
+            }
+            bsp_last_press_time = timer_read();
+            bsp_num_down = true;
+        } else {
+            bsp_num_down = false;
+            bsp_last_release_time = timer_read();
+            if (num_forced_hold) { layer_off(_NUM); num_forced_hold = false; }
+        }
+    } else if (record->event.pressed) {
+        // Any other key pressed while BSP_NUM held → force NUM layer
+        if (bsp_num_down && !num_forced_hold) {
+            layer_on(_NUM);
+            num_forced_hold = true;
+        }
+        // If BSPC was double-pressed and SPC_NAV follows immediately, treat as '0' + latch NUM
+        if (keycode == SPC_NAV && bsp_double_ready && timer_elapsed(bsp_double_expire_time) < 160) {
+            if (!num_forced_hold) { layer_on(_NUM); num_forced_hold = true; }
+            tap_code(KC_0);
+            bsp_double_ready = false;
+            return false;
+        }
+        // Any other key press cancels the BSPC double intent window
+        if (keycode != SPC_NAV && keycode != BSP_NUM) {
+            bsp_double_ready = false;
+        }
+    }
+
+    // OS-aware App Switcher keys (toggle/step/last)
+    if (keycode == APP_SW_TOG || keycode == APP_SW_TAB || keycode == APP_SW_PREV) {
+        uint16_t mod = app_sw_mod_for_os();
+        switch (keycode) {
+            case APP_SW_TOG:
+                if (record->event.pressed) {
+                    if (!app_sw_toggled) {
+                        register_code(mod);
+                        app_sw_toggled = true;
+                        app_sw_last_tab_time = timer_read();
+                        if (app_sw_token) cancel_deferred_exec(app_sw_token);
+                        app_sw_token = defer_exec(300, app_sw_autorelease_cb, NULL);
+                    } else {
+                        unregister_code(mod);
+                        app_sw_toggled = false;
+                        send_keyboard_report();
+                        if (app_sw_token) cancel_deferred_exec(app_sw_token);
+                    }
+                }
+                return false;
+            case APP_SW_TAB:
+                if (record->event.pressed) {
+                    if (app_sw_toggled) {
+                        tap_code(KC_TAB);
+                        app_sw_last_tab_time = timer_read();
+                    } else {
+                        register_code(mod); tap_code(KC_TAB); unregister_code(mod);
+                    }
+                }
+                return false;
+            case APP_SW_PREV:
+                if (record->event.pressed) {
+                    register_code(mod); register_code(KC_LSFT); tap_code(KC_TAB); unregister_code(KC_LSFT); unregister_code(mod);
+                }
+                return false;
+        }
+    }
+
+    // Mouse modifier keys (MOUSE layer only)
+    static bool m_dbl_mod_active = false;
+    static bool m_tgl_mod_active = false;
+    static bool m_drag_locked = false;
+    if (keycode == M_DBL_MOD) {
+        m_dbl_mod_active = record->event.pressed;
+        return false;
+    }
+    if (keycode == M_TGL_MOD) {
+        m_tgl_mod_active = record->event.pressed;
+        return false;
+    }
+
+    // Middle click with hold threshold (>200ms)
+    static bool mbtn3_pressed = false;
+    static bool mbtn3_active = false;
+    static deferred_token mbtn3_token = 0;
+    uint32_t mbtn3_hold_cb(uint32_t t, void *arg) {
+        (void)t; (void)arg;
+        if (mbtn3_pressed && !mbtn3_active) {
+            register_code(MS_BTN3);
+            mbtn3_active = true;
+        }
+        return 0;
+    }
+    if (keycode == M_MBTN3) {
+        if (record->event.pressed) {
+            mbtn3_pressed = true;
+            mbtn3_token = defer_exec(200, mbtn3_hold_cb, NULL);
+        } else {
+            mbtn3_pressed = false;
+            cancel_deferred_exec(mbtn3_token);
+            if (mbtn3_active) {
+                unregister_code(MS_BTN3);
+                send_keyboard_report();
+                mbtn3_active = false;
+            }
+        }
+        return false;
+    }
+
+    // BTN1 intercepts: double-click and drag-toggle
+    if (keycode == MS_BTN1) {
+        if (record->event.pressed) {
+            if (m_dbl_mod_active) {
+                tap_code(MS_BTN1);
+                wait_ms(30);
+                tap_code(MS_BTN1);
+                return false;
+            }
+            if (m_tgl_mod_active) {
+                if (!m_drag_locked) {
+                    register_code(MS_BTN1);
+                    m_drag_locked = true;
+                } else {
+                    unregister_code(MS_BTN1);
+                    send_keyboard_report();
+                    m_drag_locked = false;
+                }
+                return false;
+            }
+        } else {
+            // If drag is locked, ignore BTN1 release
+            if (m_drag_locked) return false;
+        }
+    }
+
+    // Toggle ACL stages with MS_ACL keys (select stage; no need to hold)
+    if (keycode == MS_ACL0 || keycode == MS_ACL1 || keycode == MS_ACL2) {
+        if (record->event.pressed && layer_state_cmp(layer_state, _MOUSE)) {
+            int8_t stage = (keycode == MS_ACL0) ? 0 : (keycode == MS_ACL1) ? 1 : 2;
+            mouse_acl_set(stage);
+        }
+        return false;
     }
 
     // Get current OS and mods

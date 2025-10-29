@@ -1,6 +1,6 @@
 # Cheapino v2 - Toby's Keymap Features & Dokumentation
 
-**Stand:** 28. Oktober 2025 - **Version 2.4**
+**Stand:** 28. Oktober 2025 - **Version 2.5**
 **QMK Version:** 0.30.6
 **Keyboard:** Cheapino v2 (RP2040)
 **Layout:** Colemak mit Home Row Mods
@@ -27,6 +27,7 @@
 14. **Quick Tap** - Schnelles Backspace-Repeat ohne Layer-Aktivierung
 15. **LED Layer Indicator** - Nicht-blockierende Layerfarben
 16. **OS Boot LED Flash** - Kurzer OS-Farbblitz beim Start
+17. **Mouse Kinetic Mode** - Inertia mit langsamerem Wheel
 
 ### ❌ Bewusst deaktiviert (verursachten Probleme):
 
@@ -34,7 +35,25 @@
 
 ---
 
-## 🆕 Neueste Änderungen - Version 2.4 (28.10.2025)
+## 🆕 Neueste Änderungen - Version 2.5 (28.10.2025)
+
+### ✨ Änderungen:
+
+1. **BSPC → 0 / NUM Intent (robuster)**
+   - BSPC Doppeldruck (<120ms) + SPC_NAV (<160ms) → sendet `0` und aktiviert NUM sofort
+   - Jede andere Taste zwischen Doppeldruck und SPC cancelt die 0‑Intention
+
+2. **App‑Switcher (NAV, rechts, Daumen)**
+   - Toggle (Cmd/Super/Alt), Tab, Prev (Mod+Shift+Tab)
+   - Auto‑Release nach 1.5s Inaktivität
+
+3. **Mouse: Kinetic (Inertia) + langsames Wheel**
+   - Inertia aktiv, Wheel stark verlangsamt (halten = Lesegeschwindigkeit)
+   - Hinweis: ACL‑Stufen wirken nur im Combined Mode; im Kinetic Mode ohne Effekt
+
+### Maus‑Defaults (aktuell)
+- Kinetic: `MOVE_DELTA=5`, `MAX_SPEED=28`, `TIME_TO_MAX=60`, `FRICTION=8`
+- Wheel: `INTERVAL=100`, `MAX_SPEED=6`, `TIME_TO_MAX=100`
 
 ### ✨ Änderungen:
 
