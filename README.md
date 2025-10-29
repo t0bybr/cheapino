@@ -53,6 +53,11 @@
 4. **LED-OS-Flash robuster**
    - Wartet auf OS-Erkennung, zeigt dann 800ms OS-Farbe (Linux/Windows=Grün, macOS=Magenta)
 
+### 🛠️ Fixes:
+- SHIFT+Backspace sendet jetzt zuverlässig Delete (Tap/Hold) auf Linux und macOS
+- Combos auf macOS aktiv (OS-aware Cmd/ Ctrl)
+- Ctrl↔Gui Swap wird nach OS-Erkennung gesetzt (störungsfrei)
+
 ## 🆕 Neueste Änderungen - Version 2.3 (28.10.2025)
 
 ### ✨ Neue Features:

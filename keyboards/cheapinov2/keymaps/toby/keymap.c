@@ -463,6 +463,12 @@ static uint32_t hrm_hold_cb(uint32_t trigger_time, void *cb_arg) {
     return 0; // one-shot
 }
 
+// --- SHIFT+Backspace → Delete hold support (robust across HRM/Shift timing) ---
+static bool hm_t_pressed = false;
+static bool hm_n_pressed = false;
+static bool bsp_del_active = false;
+static uint8_t bsp_del_saved_mods = 0;
+
 static void apply_layer_color(layer_state_t state) {
     if (leader_overlay_active) {
         // Leader overlay has highest priority: white at V=50 while waiting
@@ -498,36 +504,41 @@ static uint32_t os_flash_done_cb(uint32_t trigger_time, void *cb_arg) {
 }
 #endif // RGBLIGHT_LAYERS
 
-#ifdef RGBLIGHT_LAYERS
-// Wait until OS detection becomes known, then show OS color briefly
-static uint32_t os_flash_wait_cb(uint32_t trigger_time, void *cb_arg) {
+// Wait until OS detection becomes known, then configure modifier swap and LED flash
+static uint32_t os_setup_wait_cb(uint32_t trigger_time, void *cb_arg) {
     (void)trigger_time;
+    (void)cb_arg;
     static uint8_t attempts = 0;
     attempts++;
 
     os_variant_t os = detected_host_os();
     if (os == OS_UNSURE) {
-        if (attempts < 30) { // wait up to ~6s (200ms * 30)
-            return 200; // try again
+        if (attempts < 30) {
+            return 200; // retry
         } else {
-            // give up, apply current layer color
+            // Give up; just apply current layer color
+#ifdef RGBLIGHT_LAYERS
             apply_layer_color(layer_state);
+#endif
             return 0;
         }
     }
 
-    // Show OS color at brightness 50 for 800ms
-    if (os == OS_MACOS || os == OS_IOS) {
+    bool is_macos = (os == OS_MACOS || os == OS_IOS);
+    keymap_config.swap_lctl_lgui = is_macos;
+    keymap_config.swap_rctl_rgui = is_macos;
+
+#ifdef RGBLIGHT_LAYERS
+    // Show OS color for 800ms at brightness 50, then restore
+    if (is_macos) {
         rgblight_sethsv_noeeprom(212, 255, 50); // macOS: magenta
-    } else if (os == OS_LINUX || os == OS_WINDOWS) {
-        rgblight_sethsv_noeeprom(85, 255, 50);  // Linux/Windows: green
     } else {
-        rgblight_sethsv_noeeprom(0, 0, 50);     // fallback: white
+        rgblight_sethsv_noeeprom(85, 255, 50);  // Linux/Windows: green
     }
     defer_exec(800, os_flash_done_cb, NULL);
+#endif
     return 0;
 }
-#endif // RGBLIGHT_LAYERS
 
 // ============================================================================
 // TRI-LAYER: SYM_R + NUM = FKEY + LED updates on state change
@@ -641,6 +652,41 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
+    if (keycode == HM_T) {
+        hm_t_pressed = record->event.pressed;
+    } else if (keycode == HM_N) {
+        hm_n_pressed = record->event.pressed;
+    }
+
+    // Robust SHIFT+Backspace → Delete Hold
+    // Hold KC_DEL while BSP_NUM is held and SHIFT is effectively down (as mod or HRM key pressed)
+    // SHIFT + BSP_NUM → Delete (press=down, release=up), independent of LT
+    if (keycode == BSP_NUM) {
+        bool shift_effective = ((get_mods() & MOD_MASK_SHIFT) != 0) || hm_t_pressed || hm_n_pressed;
+        if (shift_effective) {
+            if (record->event.pressed) {
+                // Save current mods and temporarily clear SHIFT to send plain DEL
+                bsp_del_saved_mods = get_mods();
+                if (bsp_del_saved_mods & MOD_MASK_SHIFT) {
+                    unregister_mods(MOD_MASK_SHIFT);
+                    send_keyboard_report();
+                }
+                register_code(KC_DEL);
+                bsp_del_active = true;
+                return false; // suppress LT processing
+            } else {
+                if (bsp_del_active) {
+                    unregister_code(KC_DEL);
+                    send_keyboard_report();
+                    set_mods(bsp_del_saved_mods);
+                    send_keyboard_report();
+                    bsp_del_active = false;
+                    return false;
+                }
+            }
+        }
+    }
+
     // Get current OS and mods
     os_variant_t os = detected_host_os();
     bool is_macos = (os == OS_MACOS || os == OS_IOS);
@@ -649,20 +695,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     // Homerow mod LED removed - was causing keyboard lockup
     // LED calls in process_record_user() can block even with _noeeprom()
 
-    // OS-aware modifier handling for Backspace
+    // OS-aware modifier handling for Backspace (word delete)
     if (keycode == BSP_NUM) {
-        // Shift + Backspace = Delete with autorepeat
-        if (mods & MOD_MASK_SHIFT) {
-            if (record->event.pressed) {
-                unregister_mods(MOD_MASK_SHIFT);
-                register_code(KC_DEL);
-            } else {
-                unregister_code(KC_DEL);
-                set_mods(mods);
-            }
-            return false;
-        }
-
         // Ctrl + Backspace = Delete word backward (OS-aware)
         // Linux: Ctrl+Backspace, macOS: Option+Backspace
         if (mods & MOD_MASK_CTRL) {
@@ -717,10 +751,10 @@ void keyboard_post_init_user(void) {
     rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
     // Attach our layer segments to QMK's rgblight layering system
     rgblight_layers = my_rgb_layers;
-    // Defer OS flash until OS is known; otherwise wait and try again
     apply_layer_color(layer_state); // set to current layer (Base off)
-    defer_exec(200, os_flash_wait_cb, NULL);
 #endif
+    // Configure OS-dependent behavior and (optionally) LED flash once OS is known
+    defer_exec(200, os_setup_wait_cb, NULL);
 }
 
 // Matrix scan - keep empty (no LED work here)
