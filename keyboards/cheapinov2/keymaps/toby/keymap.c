@@ -17,12 +17,8 @@
 #define BSP_QT_GUARD_MS 180
 #endif
 
-// Time of last non-BSPC key press (for BSPC quick-tap guard)
-static uint16_t bsp_qt_block_time = 0;
-static uint16_t bsp_last_release_time = 0;
-static uint16_t bsp_last_press_time = 0;
-static bool     bsp_double_ready = false;
-static uint16_t bsp_double_expire_time = 0;
+// (reserved) quick-tap guard timestamp (not used)
+// static uint16_t bsp_qt_block_time = 0;
 
 // App switcher toggle state
 static bool app_sw_toggled = false;
@@ -45,29 +41,10 @@ static uint32_t app_sw_autorelease_cb(uint32_t t, void *arg) {
     return 200; // keep checking
 }
 
-// =========================
-// MOUSE ACL stage toggling
-// =========================
-static int8_t mouse_acl_stage = -1; // -1 = none, 0/1/2 = held
-static uint16_t acl_code_for(int8_t s) {
-    return (s == 0) ? MS_ACL0 : (s == 1) ? MS_ACL1 : (s == 2) ? MS_ACL2 : KC_NO;
-}
-static void mouse_acl_set(int8_t s) {
-    if (mouse_acl_stage == s) return;
-    if (mouse_acl_stage >= 0) {
-        unregister_code(acl_code_for(mouse_acl_stage));
-        send_keyboard_report();
-    }
-    mouse_acl_stage = s;
-    if (mouse_acl_stage >= 0) {
-        register_code(acl_code_for(mouse_acl_stage));
-        send_keyboard_report();
-    }
-}
+// Mouse ACL: use QMK defaults (MS_ACL keys are momentary by default).
+// No custom interception here to ensure the built-in accel stages take effect.
 
-// Force NUM layer while BSP_NUM held with second key
-static bool bsp_num_down = false;
-static bool num_forced_hold = false;
+// Force NUM layer while BSP_NUM held with second key — handled by BSPC state machine now
 
 // Forward declaration for LED layer application
 static void apply_layer_color(layer_state_t state);
@@ -143,7 +120,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_MEDIA] = LAYOUT_split_3x5_3(
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  _______, _______, _______, _______,   KC_NO,
            KC_LEFT, KC_MPRV, KC_VOLD,
   KC_VOLU, KC_MNXT,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
@@ -168,10 +145,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // Left: S/T modifiers placed on home row positions; Right: wheel/cursor mirrored to NAV
   KC_NO,   KC_NO,     M_TGL_MOD, M_DBL_MOD, KC_NO,
   KC_NO,   MS_WHLU,     MS_UP,   MS_WHLD,     KC_NO,
-  KC_NO,   MS_ACL0,     MS_ACL1, MS_ACL2,     KC_NO,
+  KC_LGUI, KC_LALT, KC_LCTL, KC_LSFT, KC_NO,
            MS_WHLL,     MS_LEFT,   MS_DOWN,
   MS_RGHT,   MS_WHLR,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  KC_NO,   MS_ACL0,     MS_ACL1, MS_ACL2,     KC_NO,
   KC_NO, KC_NO,   KC_NO, KC_NO,   KC_NO,
   KC_NO,   KC_NO,     _______,
   M_MBTN3, MS_BTN1,   MS_BTN2
@@ -181,8 +158,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   S(KC_LBRC), S(KC_7), S(KC_8), S(KC_9), S(KC_RBRC),
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   S(KC_SCLN), S(KC_4), S(KC_5), S(KC_6), S(KC_EQL),
-           KC_NO,   KC_RSFT, KC_RCTL,
-  KC_RALT, KC_RGUI,
+           KC_NO, _______, _______,
+  _______, _______,
   S(KC_GRV), S(KC_1), S(KC_2), S(KC_3), S(KC_BSLS),
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   S(KC_9), S(KC_0), S(KC_MINS),    // Left middle thumb = ')'
@@ -193,8 +170,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_LBRC, KC_7,    KC_8,    KC_9,    KC_RBRC,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_SCLN, KC_4,    KC_5,    KC_6,    KC_PEQL,
-           KC_NO,   KC_RSFT, KC_RCTL,
-  KC_RALT, KC_RGUI,
+           KC_NO,   _______, _______,
+  _______, _______,
   KC_GRV,  KC_1,    KC_2,    KC_3,    KC_BSLS,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   QK_REP,  KC_0,    KC_PMNS,   // Move 0 to left thumb (middle)
@@ -205,8 +182,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   QK_BOOT,
   KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
-           KC_NO,   KC_RSFT, KC_RCTL,
-  KC_RALT, KC_RGUI,
+           KC_NO,   _______, _______,
+  _______, _______,
   KC_F10,  KC_F1,   KC_F2,   KC_F3,   KC_NO,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_APP,  KC_NO,   QK_REP,
@@ -315,8 +292,8 @@ const key_override_t *key_overrides[] = {
 void leader_start_user(void) {
 #ifdef RGBLIGHT_LAYERS
     leader_overlay_active = true;
-    // White at brightness 50 while leader is active
-    rgblight_sethsv_noeeprom(0, 0, 50);
+    // White at configured brightness while leader is active
+    rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS);
 #endif
 }
 
@@ -324,25 +301,9 @@ void leader_end_user(void) {
     os_variant_t os = detected_host_os();
     bool is_macos = (os == OS_MACOS || os == OS_IOS);
 
-    // Leader + S + P = App Launcher (OS-aware)
-    if (leader_sequence_two_keys(KC_S, KC_P)) {
-        if (is_macos) {
-            tap_code16(LGUI(KC_SPC));  // Cmd+Space (Spotlight)
-        } else {
-            tap_code(KC_LGUI);  // Super (Linux launcher)
-        }
-    }
-
-    // Leader + T + C = Terminal Ctrl+C
-    if (leader_sequence_two_keys(KC_T, KC_C)) {
-        tap_code16(LCTL(KC_C));
-    }
-
-    // TODO: Add more leader sequences as needed
-    // Examples:
-    // - Leader + G + I + T = "git status"
-    // - Leader + E + M = Your email
-    // - Leader + W + Q = Close window
+    // Delegate actual actions to the leader module
+    extern void leader_handle_sequences(bool is_macos);
+    leader_handle_sequences(is_macos);
 
     // Turn off leader overlay and restore layer color
     leader_overlay_active = false;
@@ -421,10 +382,8 @@ bool get_hold_on_other_key_press(uint16_t keycode, keyrecord_t *record) {
 uint16_t get_quick_tap_term(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case BSP_NUM:
-            if (timer_elapsed(bsp_qt_block_time) < BSP_QT_GUARD_MS) {
-                return 0;
-            }
-            return 150;
+            // Managed by BSPC state machine; disable quick-tap repeat
+            return 0;
         default:
             return 0;
     }
@@ -459,8 +418,8 @@ static inline uint8_t hsv_s_for_layer(uint8_t layer) {
 }
 
 static inline uint8_t hsv_v_for_layer(uint8_t layer) {
-    // Global brightness = 50; Base layer off
-    return (layer == _BASE) ? 0 : 50;
+    // Global brightness from config; Base layer off
+    return (layer == _BASE) ? 0 : LED_BRIGHTNESS;
 }
 
 // RGBlight layer segments (1 LED total). We also set HSV directly for precision.
@@ -519,10 +478,10 @@ static uint32_t hrm_hold_cb(uint32_t trigger_time, void *cb_arg) {
     if (hrm_pressed[idx] && !hrm_is_hold[idx]) {
         hrm_is_hold[idx] = true;
         if (hrm_active_count == 0) {
-            // Activate overlay: random-ish hue, full sat, V=50
+            // Activate overlay: random-ish hue, full sat, configured homerow brightness
             uint8_t hue = (uint8_t)((timer_read() * 37u + (uint32_t)idx * 53u) & 0xFFu);
             hrm_overlay_active = true;
-            rgblight_sethsv_noeeprom(hue, 255, 50);
+            rgblight_sethsv_noeeprom(hue, 255, LED_BRIGHTNESS_HOMEROW);
         }
         hrm_active_count++;
     }
@@ -532,15 +491,48 @@ static uint32_t hrm_hold_cb(uint32_t trigger_time, void *cb_arg) {
 // --- SHIFT+Backspace → Delete hold support (robust across HRM/Shift timing) ---
 static bool hm_t_pressed = false;
 static bool hm_n_pressed = false;
+// Track HRM GUI/CTRL too for robust chord detection before mod bits latch
+static bool hm_a_pressed = false; // LGUI on A
+static bool hm_o_pressed = false; // RGUI on O
+static bool hm_s_pressed = false; // LCTL on S
+static bool hm_e_pressed = false; // RCTL on E
 static bool bsp_del_active = false;
 static uint8_t bsp_del_saved_mods = 0;
 
-// --- BSPC Quick-Tap guard to avoid accidental repeat when typing a digit after BSPC ---
+// --- BSPC State Machine (tap/hold, double-tap->hold, triple-tap->repeat) ---
+static bool     bsp_pressed = false;
+// legacy flag removed; rely on LT for hold
+static uint8_t  bsp_tap_count = 0;
+static uint16_t bsp_last_tap_time = 0;
+static bool     bsp_repeat_active = false;
+// static deferred_token bsp_hold_token = 0; // no longer used
+static deferred_token bsp_repeat_token = 0;
+
+#ifndef BSPC_HOLD_MS
+#define BSPC_HOLD_MS TAPPING_TERM
+#endif
+#ifndef BSPC_REPEAT_INTERVAL_MS
+#define BSPC_REPEAT_INTERVAL_MS 35
+#endif
+#ifndef BSPC_TRIPLE_TERM_MS
+#define BSPC_TRIPLE_TERM_MS 400
+#endif
+
+// static uint32_t bsp_hold_cb(uint32_t t, void *arg) { return 0; }
+
+static uint32_t bsp_repeat_cb(uint32_t t, void *arg) {
+    (void)t; (void)arg;
+    if (bsp_repeat_active && bsp_pressed) {
+        tap_code(KC_BSPC);
+        return BSPC_REPEAT_INTERVAL_MS;
+    }
+    return 0;
+}
 
 static void apply_layer_color(layer_state_t state) {
     if (leader_overlay_active) {
-        // Leader overlay has highest priority: white at V=50 while waiting
-        rgblight_sethsv_noeeprom(0, 0, 50);
+        // Leader overlay has highest priority: white while waiting
+        rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS);
         return;
     }
     if (hrm_overlay_active) {
@@ -597,11 +589,14 @@ static uint32_t os_setup_wait_cb(uint32_t trigger_time, void *cb_arg) {
     keymap_config.swap_rctl_rgui = is_macos;
 
 #ifdef RGBLIGHT_LAYERS
-    // Show OS color for 800ms at brightness 50, then restore
-    if (is_macos) {
-        rgblight_sethsv_noeeprom(212, 255, 50); // macOS: magenta
+    // Show OS color for 800ms at configured brightness, then restore
+    // Windows: BSOD blue, macOS: white, Linux: Ubuntu purple
+    if (os == OS_WINDOWS) {
+        rgblight_sethsv_noeeprom(170, 255, LED_BRIGHTNESS); // Deep blue
+    } else if (is_macos) {
+        rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS);     // White
     } else {
-        rgblight_sethsv_noeeprom(85, 255, 50);  // Linux/Windows: green
+        rgblight_sethsv_noeeprom(197, 255, LED_BRIGHTNESS); // Ubuntu purple (~280°)
     }
     defer_exec(800, os_flash_done_cb, NULL);
 #endif
@@ -616,12 +611,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
     // Tri-Layer: When SYM_R and NUM are both active, activate FKEY
     state = update_tri_layer_state(state, _SYM_R, _NUM, _FKEY);
 
-    // MOUSE ACL default stage on enter, clear on exit
-    if (layer_state_cmp(state, _MOUSE)) {
-        mouse_acl_set(1); // default ACL1 when entering MOUSE
-    } else {
-        mouse_acl_set(-1); // clear when leaving
-    }
+    // No custom ACL handling here (use QMK defaults)
 
 #ifdef RGBLIGHT_LAYERS
     apply_layer_color(state);
@@ -641,10 +631,7 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 // ============================================================================
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-    // Guard: any non-BSPC key press disables BSPC quick-tap repeat briefly
-    if (record->event.pressed && keycode != BSP_NUM) {
-        bsp_qt_block_time = timer_read();
-    }
+    // BSPC quick-tap guard disabled (state machine handles behavior now)
     // Track BSP_NUM pressed state (for conditional HOOKP on SPC_NAV)
     if (keycode == BSP_NUM) {
         bsp_num_pressed = record->event.pressed;
@@ -716,7 +703,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 if (hrm_active_count == 0) {
                     uint8_t hue = (uint8_t)((timer_read() * 37u + 123u) & 0xFFu);
                     hrm_overlay_active = true;
-                    rgblight_sethsv_noeeprom(hue, 255, 50);
+                    rgblight_sethsv_noeeprom(hue, 255, LED_BRIGHTNESS_HOMEROW);
                 }
                 // Count all newly-promoted HRMs
                 // We can't know exactly how many just now; recompute count:
@@ -735,67 +722,90 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         hm_t_pressed = record->event.pressed;
     } else if (keycode == HM_N) {
         hm_n_pressed = record->event.pressed;
+    } else if (keycode == HM_A) {
+        hm_a_pressed = record->event.pressed;
+    } else if (keycode == HM_O) {
+        hm_o_pressed = record->event.pressed;
+    } else if (keycode == HM_S) {
+        hm_s_pressed = record->event.pressed;
+    } else if (keycode == HM_E) {
+        hm_e_pressed = record->event.pressed;
     }
 
-    // Robust SHIFT+Backspace → Delete Hold
-    // Hold KC_DEL while BSP_NUM is held and SHIFT is effectively down (as mod or HRM key pressed)
-    // SHIFT + BSP_NUM → Delete (press=down, release=up), independent of LT
+    // BSP_NUM custom handling: only triple-tap+hold = Backspace repeat.
+    // Otherwise, let LT(_NUM, KC_BSPC) handle tap/hold semantics.
     if (keycode == BSP_NUM) {
-        bool shift_effective = ((get_mods() & MOD_MASK_SHIFT) != 0) || hm_t_pressed || hm_n_pressed;
-        if (shift_effective) {
-            if (record->event.pressed) {
-                // Save current mods and temporarily clear SHIFT to send plain DEL
-                bsp_del_saved_mods = get_mods();
-                if (bsp_del_saved_mods & MOD_MASK_SHIFT) {
-                    unregister_mods(MOD_MASK_SHIFT);
-                    send_keyboard_report();
-                }
+        uint8_t mods_now = get_mods();
+        bool shift_effective = ((mods_now & MOD_MASK_SHIFT) != 0) || hm_t_pressed || hm_n_pressed;
+        bool gui_effective = ((mods_now & (MOD_BIT(KC_LGUI) | MOD_BIT(KC_RGUI))) != 0) || hm_a_pressed || hm_o_pressed;
+        bool ctrl_effective = ((mods_now & MOD_MASK_CTRL) != 0) || hm_s_pressed || hm_e_pressed;
+        bool is_macos = (detected_host_os() == OS_MACOS || detected_host_os() == OS_IOS);
+        bool wordmod_effective = is_macos ? gui_effective : ctrl_effective;
+
+        if (record->event.pressed) {
+            // Word-delete chords (OS-aware) take precedence
+            if (wordmod_effective && shift_effective) {
+                uint8_t saved = get_mods();
+                clear_mods(); send_keyboard_report();
+                if (is_macos) tap_code16(LALT(KC_DEL)); else tap_code16(LCTL(KC_DEL));
+                set_mods(saved); send_keyboard_report();
+                return false;
+            }
+            if (wordmod_effective && !shift_effective) {
+                uint8_t saved = get_mods();
+                clear_mods(); send_keyboard_report();
+                if (is_macos) tap_code16(LALT(KC_BSPC)); else tap_code16(LCTL(KC_BSPC));
+                set_mods(saved); send_keyboard_report();
+                return false;
+            }
+            // Shift+Backspace -> hold Delete until release
+            if (shift_effective) {
+                bsp_del_saved_mods = mods_now;
+                if (bsp_del_saved_mods & MOD_MASK_SHIFT) { unregister_mods(MOD_MASK_SHIFT); send_keyboard_report(); }
                 register_code(KC_DEL);
                 bsp_del_active = true;
-                return false; // suppress LT processing
-            } else {
-                if (bsp_del_active) {
-                    unregister_code(KC_DEL);
-                    send_keyboard_report();
-                    set_mods(bsp_del_saved_mods);
-                    send_keyboard_report();
-                    bsp_del_active = false;
-                    return false;
-                }
+                return false;
             }
-        }
-        // Track down state for NUM forced hold logic
-        if (record->event.pressed) {
-            // Double-press detection for BSPC intent (e.g., BSPC -> BSPC -> SPC_NAV for '0')
-            if (timer_elapsed(bsp_last_press_time) < 120) {
-                bsp_double_ready = true;
-                bsp_double_expire_time = timer_read();
+
+            // Triple-tap detection to start BSPC auto-repeat; otherwise let LT handle
+            bsp_pressed = true;
+            if (timer_elapsed(bsp_last_tap_time) < BSPC_TRIPLE_TERM_MS) {
+                bsp_tap_count++;
             } else {
-                bsp_double_ready = false;
+                bsp_tap_count = 1;
             }
-            bsp_last_press_time = timer_read();
-            bsp_num_down = true;
-        } else {
-            bsp_num_down = false;
-            bsp_last_release_time = timer_read();
-            if (num_forced_hold) { layer_off(_NUM); num_forced_hold = false; }
+            bsp_last_tap_time = timer_read();
+
+            if (bsp_tap_count >= 3) {
+                bsp_repeat_active = true;
+                bsp_repeat_token = defer_exec(BSPC_REPEAT_INTERVAL_MS, bsp_repeat_cb, NULL);
+                return false; // intercept: start repeat, ignore LT
+            }
+            return true; // let LT(_NUM, KC_BSPC) handle tap/hold
+        } else { // release
+            // Release delete-hold
+            if (bsp_del_active) {
+                unregister_code(KC_DEL);
+                send_keyboard_report();
+                set_mods(bsp_del_saved_mods);
+                send_keyboard_report();
+                bsp_del_active = false;
+                return false;
+            }
+            // Stop repeat if it was active
+            if (bsp_repeat_active) {
+                bsp_repeat_active = false;
+                cancel_deferred_exec(bsp_repeat_token);
+                bsp_tap_count = 0;
+                return false;
+            }
+            return true; // normal LT behavior
         }
-    } else if (record->event.pressed) {
-        // Any other key pressed while BSP_NUM held → force NUM layer
-        if (bsp_num_down && !num_forced_hold) {
-            layer_on(_NUM);
-            num_forced_hold = true;
-        }
-        // If BSPC was double-pressed and SPC_NAV follows immediately, treat as '0' + latch NUM
-        if (keycode == SPC_NAV && bsp_double_ready && timer_elapsed(bsp_double_expire_time) < 160) {
-            if (!num_forced_hold) { layer_on(_NUM); num_forced_hold = true; }
-            tap_code(KC_0);
-            bsp_double_ready = false;
-            return false;
-        }
-        // Any other key press cancels the BSPC double intent window
-        if (keycode != SPC_NAV && keycode != BSP_NUM) {
-            bsp_double_ready = false;
+    } else {
+        // Cancel repeat when other key is pressed
+        if (record->event.pressed && bsp_repeat_active) {
+            bsp_repeat_active = false;
+            cancel_deferred_exec(bsp_repeat_token);
         }
     }
 
@@ -904,14 +914,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     }
 
-    // Toggle ACL stages with MS_ACL keys (select stage; no need to hold)
-    if (keycode == MS_ACL0 || keycode == MS_ACL1 || keycode == MS_ACL2) {
-        if (record->event.pressed && layer_state_cmp(layer_state, _MOUSE)) {
-            int8_t stage = (keycode == MS_ACL0) ? 0 : (keycode == MS_ACL1) ? 1 : 2;
-            mouse_acl_set(stage);
-        }
-        return false;
-    }
+    // Let MS_ACL0/1/2 fall through to QMK default handling (momentary accel)
 
     // Get current OS and mods
     os_variant_t os = detected_host_os();

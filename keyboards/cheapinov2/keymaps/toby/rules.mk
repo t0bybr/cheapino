@@ -17,3 +17,6 @@ TRI_LAYER_ENABLE = yes         # Enabled - now works with Layer-Tap (trigger key
 LTO_ENABLE = yes               # Link Time Optimization
 CONSOLE_ENABLE = no            # Disable console for size
 COMMAND_ENABLE = no            # Disable command for size
+
+# Extra sources for this keymap
+SRC += leader_actions.c
