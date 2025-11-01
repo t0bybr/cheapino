@@ -26,6 +26,11 @@ Build & Flash
    `cd ../qmk_firmware && qmk compile -kb cheapinov2 -km toby`
 3) Flash (RP2040 UF2): enter bootloader (QK_BOOT/reset) and copy `cheapinov2_toby.uf2` to `RPI-RP2`.
 
+Build Tips
+- If you see a permission error in `.build` (version.h .bak), stop other builds, then run:
+  - `cd ../qmk_firmware && qmk clean -kb cheapinov2 -km toby`
+  - If needed: `rm -rf .build/cheapinov2_toby .build/obj_cheapinov2_toby`
+
 Layers (short)
 - BASE (Colemak) – HRMs on A/R/S/T and N/E/I/O; thumbs are LT keys.
 - NAV – arrows/navigation; App‑Switcher on right thumbs (Toggle/Tab/Prev).
