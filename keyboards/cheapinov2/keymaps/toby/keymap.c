@@ -352,9 +352,11 @@ bool get_permissive_hold(uint16_t keycode, keyrecord_t *record) {
         case SPC_NAV:
         case TAB_MOU:
         case ENT_SYM:
-        case BSP_NUM:
         case DEL_FKY:
             return true;
+        case BSP_NUM:
+            // Disable HOOKP for BSPC/NUM to avoid unintended NUM activation after quick BSPC + next key
+            return false;
         default:
             return false;
     }
