@@ -33,8 +33,8 @@
 #define MOUSEKEY_INTERVAL 16
 #define MOUSEKEY_MOVE_DELTA 10         // Slightly higher base motion for snappier start
 #define MOUSEKEY_MAX_SPEED 24         // Slightly lower top speed
-#define MOUSEKEY_TIME_TO_MAX 6        // Even faster ramp to max speed
-#define MOUSEKEY_FRICTION 6           // Inertia friction (higher = more damping)
+#define MOUSEKEY_TIME_TO_MAX 4        // Even faster ramp to max speed
+#define MOUSEKEY_FRICTION 4           // Inertia friction (higher = more damping)
 // Wheel: make it slow enough to read while holding
 #define MOUSEKEY_WHEEL_DELAY 0
 #define MOUSEKEY_WHEEL_INTERVAL 80   // Much slower scroll rate

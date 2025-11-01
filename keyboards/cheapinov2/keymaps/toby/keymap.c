@@ -505,7 +505,11 @@ static bool     bsp_pressed = false;
 static uint8_t  bsp_tap_count = 0;
 static uint16_t bsp_last_tap_time = 0;
 static bool     bsp_repeat_active = false;
-// static deferred_token bsp_hold_token = 0; // no longer used
+#ifndef BSPC_TRIPLE_HOLD_MS
+#define BSPC_TRIPLE_HOLD_MS 80
+#endif
+static bool     bsp_triple_pending = false;
+static deferred_token bsp_triple_hold_token = 0;
 static deferred_token bsp_repeat_token = 0;
 
 #ifndef BSPC_HOLD_MS
@@ -527,6 +531,16 @@ static uint32_t bsp_repeat_cb(uint32_t t, void *arg) {
         return BSPC_REPEAT_INTERVAL_MS;
     }
     return 0;
+}
+
+static uint32_t bsp_triple_hold_cb(uint32_t t, void *arg) {
+	(void)t; (void)arg;
+	if (bsp_triple_pending && bsp_pressed && !bsp_repeat_active) {
+		bsp_repeat_active = true;
+		bsp_repeat_token = defer_exec(BSPC_REPEAT_INTERVAL_MS, bsp_repeat_cb, NULL);
+		bsp_triple_pending = false;
+	}
+	return 0;
 }
 
 static void apply_layer_color(layer_state_t state) {
@@ -776,12 +790,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             }
             bsp_last_tap_time = timer_read();
 
-            if (bsp_tap_count >= 3) {
-                bsp_repeat_active = true;
-                bsp_repeat_token = defer_exec(BSPC_REPEAT_INTERVAL_MS, bsp_repeat_cb, NULL);
-                return false; // intercept: start repeat, ignore LT
-            }
-            return true; // let LT(_NUM, KC_BSPC) handle tap/hold
+			if (bsp_tap_count >= 3) {
+				bsp_triple_pending = true;
+				bsp_repeat_active = false;
+				cancel_deferred_exec(bsp_triple_hold_token);
+				bsp_triple_hold_token = defer_exec(BSPC_TRIPLE_HOLD_MS, bsp_triple_hold_cb, NULL);
+				return false; // warten auf Hold, kein sofortiger Repeat
+			}
+
+			return true; // LT(_NUM, KC_BSPC) macht Tap/Hold normal
         } else { // release
             // Release delete-hold
             if (bsp_del_active) {
@@ -792,6 +809,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 bsp_del_active = false;
                 return false;
             }
+
+			if (bsp_triple_pending && !bsp_repeat_active) {
+				cancel_deferred_exec(bsp_triple_hold_token);
+				bsp_triple_pending = false;
+				bsp_tap_count = 0;
+				tap_code(KC_BSPC);
+
+				return false;
+            }
+
             // Stop repeat if it was active
             if (bsp_repeat_active) {
                 bsp_repeat_active = false;

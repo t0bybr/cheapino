@@ -51,7 +51,7 @@ Backspace (BSPC)
 
 Mouse
 - Kinetic (Inertia) mode tuned for crisp start:
-  - `MOUSEKEY_TIME_TO_MAX=6`, `MOUSEKEY_MAX_SPEED=24`, `MOUSEKEY_MOVE_DELTA=10`, `MOUSEKEY_FRICTION=6`
+  - `MOUSEKEY_TIME_TO_MAX=4`, `MOUSEKEY_MAX_SPEED=24`, `MOUSEKEY_MOVE_DELTA=10`, `MOUSEKEY_FRICTION=6`
 - Wheel: lower speed and slower ramp → comfortable reading while holding.
 - ACL keys (MS_ACL0/1/2) are momentary (QMK default): press to adjust acceleration stage on the fly.
 
@@ -72,4 +72,3 @@ Notes
 
 Contributing
 - See `AGENTS.md` for contributor guidelines, structure, conventions.
-
