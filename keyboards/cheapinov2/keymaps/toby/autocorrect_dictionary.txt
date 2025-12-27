@@ -1,0 +1,13 @@
+:teh:        -> the
+:adn:        -> and
+:recieve:    -> receive
+:adress:     -> address
+:htis:       -> this
+:taht:       -> that
+:jsut:       -> just
+:hte:        -> the
+:widht:      -> width
+:fitler:     -> filter
+:lenght:     -> length
+:thier:      -> their
+:datt:       -> dann

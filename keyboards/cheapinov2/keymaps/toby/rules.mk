@@ -9,6 +9,7 @@ KEY_OVERRIDE_ENABLE = yes      # Key overrides (Shift+Bspc = Del)
 COMBO_ENABLE = yes             # Combos for shortcuts
 LEADER_ENABLE = yes            # Leader key sequences
 OS_DETECTION_ENABLE = yes      # Enabled - works fine, LED was the problem
+AUTOCORRECT_ENABLE = yes       # Built-in typo autocorrect engine
 
 # Advanced Features
 TRI_LAYER_ENABLE = yes         # Enabled - now works with Layer-Tap (trigger keys on both layers)

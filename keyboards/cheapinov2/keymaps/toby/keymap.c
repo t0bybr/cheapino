@@ -180,7 +180,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     [_FKEY] = LAYOUT_split_3x5_3(
   KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   QK_BOOT,
+  KC_NO,   KC_NO,   KC_NO,   AC_TOGG,   QK_BOOT,
   KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
            KC_NO,   _______, _______,
   _______, _______,
@@ -193,7 +193,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [_EXTRA] = LAYOUT_split_3x5_3(
   // Tri-layer: NAV + SYM_R active = EXTRA layer
   // System functions, debugging, RGB controls, etc.
-  QK_BOOT, KC_NO,   KC_NO,   KC_NO,   KC_NO,
+  QK_BOOT, AC_TOGG, KC_NO,   KC_NO,   KC_NO,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
            KC_NO,   KC_NO,   KC_NO,
