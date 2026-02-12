@@ -5,6 +5,7 @@
 #include "leader_actions.h"
 #include "os_detection.h"
 #include "keyboards/cheapinov2/keymaps/toby/config.h"
+#include "toby_keycodes.h"
 #include "leader_map.h"
 
 // Helpers to expand a declarative map into imperative checks
@@ -33,6 +34,7 @@
     }
 
 void leader_handle_sequences(bool is_macos) {
+    (void)is_macos;
     // One-key sequences
 #ifdef LEADER_MAP_1KEY
 #define LEADER1(K1, ACT_LNX, ACT_MAC, ACT_WIN) APPLY_LEADER1(K1, ACT_LNX, ACT_MAC, ACT_WIN)

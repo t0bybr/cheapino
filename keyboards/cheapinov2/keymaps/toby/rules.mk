@@ -7,6 +7,7 @@ REPEAT_KEY_ENABLE = yes        # QK_REP for repeat last key
 MOUSEKEY_ENABLE = yes          # Built-in mouse keys
 KEY_OVERRIDE_ENABLE = yes      # Key overrides (Shift+Bspc = Del)
 COMBO_ENABLE = yes             # Combos for shortcuts
+UNICODEMAP_ENABLE = yes        # Unicode pairs for umlauts (CMD layer)
 LEADER_ENABLE = yes            # Leader key sequences
 OS_DETECTION_ENABLE = yes      # Enabled - works fine, LED was the problem
 AUTOCORRECT_ENABLE = yes       # Built-in typo autocorrect engine

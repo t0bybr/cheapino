@@ -1,0 +1,66 @@
+#+title: Cheapino Leader Cheatsheet
+
+* Nutzung
+- Leader-Taste (DEL rechts unten) drücken, dann die Buchstaben der Sequenz tippen.
+- Sequenzen sind meist zweistufig; nach der zweiten Taste feuert der Befehl sofort. Timeout zum Start: ~1s.
+- Sonderfall: DEL, DEL sendet den App-Leader-Shortcut (= ~Ctrl+Alt+F12~ standardmäßig).
+- OS-spezifisch: gleiche Sequenz, aber passende Tastenkombination für Linux/macOS/Windows.
+
+* DEL halten: Quick Commands (ohne Leader-Sequenz)
+- ~DEL+Y~ = Copy (Linux/Windows: Ctrl+Shift+C, macOS: Cmd+C)
+- ~DEL+P~ = Paste (Linux/Windows: Ctrl+Shift+V, macOS: Cmd+V)
+- ~DEL+ESC~ = Interrupt (Ctrl+C)
+- Navigation wie NAV-Layer:
+  - ~DEL+U~ = Up
+  - ~DEL+I~ = Right
+  - ~DEL+E~ = Down
+  - ~DEL+N~ = Left
+
+* Launcher
+| Sequenz | Aktion      | Linux (Ubuntu/Albert) | macOS (Spotlight) | Windows |
+|---------+-------------+-----------------------+-------------------+---------|
+| s p     | App-Launcher| Alt+Space             | Cmd+Space         | Win     |
+
+* Fenster (Prefix = w)
+| Sequenz | Aktion                     | Linux                        | macOS                        | Windows                       |
+|---------+----------------------------+------------------------------+------------------------------+--------------------------------|
+| w c     | Fenster schließen          | Alt+F4                       | Cmd+W                        | Alt+F4                        |
+| w m     | Minimieren                 | Super+H                      | Cmd+M                        | Win+Down                      |
+| w f     | Max/Fullscreen             | Super+Up                     | Ctrl+Cmd+F                   | Win+Up                        |
+| w h     | Links andocken             | Super+Left                   | Ctrl+Alt+Left                | Win+Left                      |
+| w l     | Rechts andocken            | Super+Right                  | Ctrl+Alt+Right               | Win+Right                     |
+| w p     | Vorheriger Workspace       | Super+PgUp                   | Ctrl+Left                    | Ctrl+Win+Left                 |
+| w n     | Nächster Workspace         | Super+PgDn                   | Ctrl+Right                   | Ctrl+Win+Right                |
+| w j     | Fenster → vorheriger WS    | Shift+Super+PgUp             | Shift+Ctrl+Left              | Shift+Win+Left                |
+| w k     | Fenster → nächster WS      | Shift+Super+PgDn             | Shift+Ctrl+Right             | Shift+Win+Right               |
+
+* Browser (Prefix = b)
+| Sequenz | Aktion          | Linux | macOS             | Windows |
+|---------+-----------------+-------+-------------------+---------|
+| b t     | Neuer Tab       | Ctrl+T| Cmd+T             | Ctrl+T  |
+| b w     | Tab schließen   | Ctrl+W| Cmd+W             | Ctrl+W  |
+| b r     | Reload          | Ctrl+R| Cmd+R             | Ctrl+R  |
+| b a     | Adressleiste    | Ctrl+L| Cmd+L             | Ctrl+L  |
+| b p     | Vorheriger Tab  | Ctrl+Shift+Tab| Cmd+Shift+[ | Ctrl+Shift+Tab |
+| b n     | Nächster Tab    | Ctrl+Tab| Cmd+Shift+]     | Ctrl+Tab|
+| b b     | Zurück          | Alt+Left| Cmd+[           | Alt+Left|
+| b f     | Vor             | Alt+Right| Cmd+]          | Alt+Right|
+
+* Terminal (Prefix = t)
+| Sequenz | Aktion            | Linux                  | macOS             | Windows                 |
+|---------+-------------------+------------------------+-------------------+-------------------------|
+| t c     | Interrupt (SIGINT)| Ctrl+C                 | Ctrl+C            | Ctrl+C                  |
+| t t     | Neuer Tab         | Ctrl+Shift+T           | Cmd+T             | Ctrl+Shift+T            |
+| t n     | Neues Fenster     | Ctrl+Shift+N           | Cmd+N             | Ctrl+Shift+N            |
+| t w     | Tab schließen     | Ctrl+Shift+W           | Cmd+W             | Ctrl+Shift+W            |
+| t h     | Tab zurück        | Ctrl+PgUp              | Cmd+Shift+[       | Ctrl+PgUp               |
+| t l     | Tab vor           | Ctrl+PgDn              | Cmd+Shift+]       | Ctrl+PgDn               |
+
+* Dateien/Explorer (Prefix = f)
+| Sequenz | Aktion                 | Linux                        | macOS                    | Windows    |
+|---------+------------------------+------------------------------+--------------------------+------------|
+| f o     | Dateimanager öffnen    | Super+E                      | Cmd+Alt+Space (Spotlight Finder) | Win+E     |
+| f t     | Neuer Tab              | Ctrl+T                       | Cmd+T                    | Ctrl+T     |
+| f w     | Tab schließen          | Ctrl+W                       | Cmd+W                    | Ctrl+W     |
+| f u     | Eine Ebene hoch        | Alt+Up                       | Cmd+Up                   | Alt+Up     |
+| f b     | Zurück                 | Alt+Left                     | Cmd+[                    | Alt+Left   |

@@ -9,12 +9,22 @@
 #include "os_detection.h"
 #include "rgblight.h"
 #include "deferred_exec.h"
+#include "leader.h"
 #include "timer.h"
 #include "wait.h"
+#include "toby_keycodes.h"
 
 // Guard window to avoid unintended BSPC quick-tap repeat after other keys
 #ifndef BSP_QT_GUARD_MS
 #define BSP_QT_GUARD_MS 180
+#endif
+
+#ifndef DEL_HOLD_VISUAL_MS
+#define DEL_HOLD_VISUAL_MS 140
+#endif
+
+#ifndef CMD_HOLD_HUE
+#define CMD_HOLD_HUE 149
 #endif
 
 // (reserved) quick-tap guard timestamp (not used)
@@ -41,6 +51,29 @@ static uint32_t app_sw_autorelease_cb(uint32_t t, void *arg) {
     return 200; // keep checking
 }
 
+// Command layer helpers (hold DEL_FKY)
+static void cmd_copy_os_aware(void) {
+    os_variant_t os = detected_host_os();
+    if (os == OS_MACOS || os == OS_IOS) {
+        tap_code16(LGUI(KC_C));       // Cmd+C
+    } else {
+        tap_code16(C(S(KC_C)));       // Ctrl+Shift+C (terminal-first)
+    }
+}
+
+static void cmd_paste_os_aware(void) {
+    os_variant_t os = detected_host_os();
+    if (os == OS_MACOS || os == OS_IOS) {
+        tap_code16(LGUI(KC_V));       // Cmd+V
+    } else {
+        tap_code16(C(S(KC_V)));       // Ctrl+Shift+V (terminal-first)
+    }
+}
+
+static void cmd_interrupt(void) {
+    tap_code16(C(KC_C));              // Ctrl+C (SIGINT in terminal)
+}
+
 // Mouse ACL: use QMK defaults (MS_ACL keys are momentary by default).
 // No custom interception here to ensure the built-in accel stages take effect.
 
@@ -54,6 +87,27 @@ static bool bsp_num_pressed = false;
 
 // Leader overlay state (white LED during leader timeout)
 static bool leader_overlay_active = false;
+static uint8_t leader_len = 0;  // track length to auto-complete sequences
+
+// DEL_FKY hybrid state (tap leader, hold command layer)
+static bool del_fky_pressed = false;
+static bool del_fky_used_as_hold = false;
+static bool del_fky_hold_visual = false;
+static deferred_token del_fky_hold_visual_token = 0;
+
+static uint32_t del_fky_hold_visual_cb(uint32_t t, void *arg) {
+    (void)t;
+    (void)arg;
+#ifdef RGBLIGHT_LAYERS
+    if (del_fky_pressed && !leader_sequence_active()) {
+        // Crossing the hold threshold counts as a hold, not a tap-leader.
+        del_fky_used_as_hold = true;
+        del_fky_hold_visual = true;
+        apply_layer_color(layer_state);
+    }
+#endif
+    return 0;
+}
 
 // Layer definitions
 enum layers {
@@ -65,33 +119,46 @@ enum layers {
     _NUM,        // Numbers
     _FKEY,       // F-keys
     _EXTRA,      // Extra layer (Tri-layer: NAV + SYM)
-};
-
-// Custom keycodes
-enum custom_keycodes {
-    CUSTOM_START = SAFE_RANGE,
-    APP_SW_TOG,   // Toggle app-switch modifier on/off (Cmd/Super/Alt)
-    APP_SW_TAB,   // Send Tab (uses toggle if active, otherwise quick mod+Tab)
-    APP_SW_PREV,  // Quick previous app (mod+Shift+Tab)
-    M_DBL_MOD,
-    M_TGL_MOD,
-    M_MBTN3,
+    _CMD,        // Command hold layer (hold DEL_FKY)
 };
 
 // Global state - homerow_mod_active removed (LED was causing lockup)
 
 // Home Row Mods
-// Left hand: A=GUI, R=RALT(AltGr), S=CTRL, T=SHIFT
+// Left hand: A=GUI, R=LALT, S=CTRL, T=SHIFT
 #define HM_A LGUI_T(KC_A)
-#define HM_R RALT_T(KC_R)  // AltGr for German umlauts
+#define HM_R LALT_T(KC_R)
 #define HM_S LCTL_T(KC_S)
 #define HM_T LSFT_T(KC_T)
 
-// Right hand: N=SHIFT, E=CTRL, I=ALT, O=GUI
+// Right hand: N=SHIFT, E=CTRL, I=RALT, O=GUI
 #define HM_N RSFT_T(KC_N)
 #define HM_E RCTL_T(KC_E)
 #define HM_I RALT_T(KC_I)
 #define HM_O RGUI_T(KC_O)
+
+// Unicode map for German umlauts (CMD layer: DEL hold + A/O/U/S)
+enum unicode_names {
+    U_AE_L, // ä
+    U_AE_U, // Ä
+    U_OE_L, // ö
+    U_OE_U, // Ö
+    U_UE_L, // ü
+    U_UE_U, // Ü
+    U_SS_L, // ß
+    U_SS_U, // ẞ
+};
+
+const uint32_t PROGMEM unicode_map[] = {
+    [U_AE_L] = 0x00E4, // ä
+    [U_AE_U] = 0x00C4, // Ä
+    [U_OE_L] = 0x00F6, // ö
+    [U_OE_U] = 0x00D6, // Ö
+    [U_UE_L] = 0x00FC, // ü
+    [U_UE_U] = 0x00DC, // Ü
+    [U_SS_L] = 0x00DF, // ß
+    [U_SS_U] = 0x1E9E, // ẞ
+};
 
 // Thumb keys with layer tap
 #define ESC_MED LT(_MEDIA, KC_ESC)
@@ -99,109 +166,86 @@ enum custom_keycodes {
 #define TAB_MOU LT(_MOUSE, KC_TAB)
 #define ENT_SYM LT(_SYM_R, KC_ENT)
 #define BSP_NUM LT(_NUM, KC_BSPC)
-// Repurpose DEL to Leader key (was: LT(_FKEY, KC_DEL))
-#define DEL_FKY QK_LEAD
+// DEL_FKY hybrid:
+// tap = QMK Leader, hold = Command layer, double-tap = app leader trigger
+#define DEL_FKY DEL_CMD
 
 // Keymaps
+// Source of truth: this userspace keymap is used for builds via overlay_dir=/qmk_userspace.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+    // Physical order (Cheapino split_3x5_3):
+    // L00 L01 L02 L03 L04 | R00 R01 R02 R03 R04
+    // L10 L11 L12 L13 L14 | R10 R11 R12 R13 R14
+    // L20 L21 L22 L23 L24 | R20 R21 R22 R23 R24
+    //          L30 L31 L32 | R30 R31 R32
     [_BASE] = LAYOUT_split_3x5_3(
-  // Left hand
-  KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,
-  KC_J,    KC_L,    KC_U,    KC_Y,    KC_QUOT,
-  HM_A,    HM_R,    HM_S,    HM_T,    KC_D,
-           KC_H,    HM_N,    HM_E,
-  HM_I,    HM_O,
-  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,
-  KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,
-  ESC_MED, SPC_NAV, TAB_MOU,
-  ENT_SYM, BSP_NUM, DEL_FKY
+        KC_Q,    KC_W,    KC_F,    KC_P,    KC_G,                      KC_J,    KC_L,    KC_U,    KC_Y,    KC_QUOT,
+        HM_A,    HM_R,    HM_S,    HM_T,    KC_D,                      KC_H,    HM_N,    HM_E,    HM_I,    HM_O,
+        KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                      KC_K,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,
+                                   ESC_MED, SPC_NAV, TAB_MOU, ENT_SYM, BSP_NUM, DEL_FKY
     ),
 
     [_MEDIA] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  _______, _______, _______, _______,   KC_NO,
-           KC_LEFT, KC_MPRV, KC_VOLD,
-  KC_VOLU, KC_MNXT,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  _______, KC_NO,   KC_NO,
-  KC_MSTP, KC_MPLY, KC_MUTE
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+        _______, _______, _______, _______, _______,                   KC_LEFT, KC_MPRV, KC_VOLD, KC_VOLU, KC_MNXT,
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   _______, KC_NO,   KC_NO,   KC_MSTP, KC_MPLY, KC_MUTE
     ),
 
     [_NAV] = LAYOUT_split_3x5_3(
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_PGUP, KC_UP,   KC_PGDN, KC_NO,
-  KC_LGUI, KC_LALT, KC_LCTL, KC_LSFT, KC_NO,
-           KC_HOME, KC_LEFT, KC_DOWN,
-  KC_RGHT, KC_END,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   _______, KC_NO,
-  APP_SW_TOG, APP_SW_TAB, APP_SW_PREV
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_PGUP, KC_UP,   KC_PGDN, KC_NO,
+        _______, _______, _______, _______, _______,                   KC_HOME, KC_LEFT, KC_DOWN, KC_RGHT, KC_END,
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   KC_NO,   _______, KC_NO,   APP_SW_TOG, APP_SW_TAB, APP_SW_PREV
     ),
 
     [_MOUSE] = LAYOUT_split_3x5_3(
-  // Left: S/T modifiers placed on home row positions; Right: wheel/cursor mirrored to NAV
-  KC_NO,   KC_NO,     M_TGL_MOD, M_DBL_MOD, KC_NO,
-  KC_NO,   MS_WHLU,     MS_UP,   MS_WHLD,     KC_NO,
-  KC_LGUI, KC_LALT, KC_LCTL, KC_LSFT, KC_NO,
-           MS_WHLL,     MS_LEFT,   MS_DOWN,
-  MS_RGHT,   MS_WHLR,
-  KC_NO,   MS_ACL0,     MS_ACL1, MS_ACL2,     KC_NO,
-  KC_NO, KC_NO,   KC_NO, KC_NO,   KC_NO,
-  KC_NO,   KC_NO,     _______,
-  M_MBTN3, MS_BTN1,   MS_BTN2
+        // Left: S/T modifiers placed on home row positions; right mirrors NAV wheel/cursor
+        KC_NO,   KC_NO,   M_TGL_MOD, M_DBL_MOD, KC_NO,                 KC_NO,   MS_WHLU, MS_UP,   MS_WHLD, KC_NO,
+        _______, _______, _______,   _______,   _______,               MS_WHLL, MS_LEFT, MS_DOWN, MS_RGHT, MS_WHLR,
+        KC_NO,   MS_ACL0, MS_ACL1,   MS_ACL2,   KC_NO,                 KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   KC_NO,   KC_NO,   _______, M_MBTN3, MS_BTN1, MS_BTN2
     ),
 
     [_SYM_R] = LAYOUT_split_3x5_3(
-  S(KC_LBRC), S(KC_7), S(KC_8), S(KC_9), S(KC_RBRC),
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  S(KC_SCLN), S(KC_4), S(KC_5), S(KC_6), S(KC_EQL),
-           KC_NO, _______, _______,
-  _______, _______,
-  S(KC_GRV), S(KC_1), S(KC_2), S(KC_3), S(KC_BSLS),
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  S(KC_9), S(KC_0), S(KC_MINS),    // Left middle thumb = ')'
-  _______, BSP_NUM, DEL_FKY        // Ensure BSP_NUM accessible for tri-layer
+        S(KC_LBRC), S(KC_7), S(KC_8), S(KC_9), S(KC_RBRC),             KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+        S(KC_SCLN), S(KC_4), S(KC_5), S(KC_6), S(KC_EQL),            _______,   _______, _______, _______, _______,
+        S(KC_GRV),  S(KC_1), S(KC_2), S(KC_3), S(KC_BSLS),             KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   S(KC_9), S(KC_0), S(KC_MINS), _______, BSP_NUM, DEL_FKY
     ),
 
     [_NUM] = LAYOUT_split_3x5_3(
-  KC_LBRC, KC_7,    KC_8,    KC_9,    KC_RBRC,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_SCLN, KC_4,    KC_5,    KC_6,    KC_PEQL,
-           KC_NO,   _______, _______,
-  _______, _______,
-  KC_GRV,  KC_1,    KC_2,    KC_3,    KC_BSLS,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  QK_REP,  KC_0,    KC_PMNS,   // Move 0 to left thumb (middle)
-  ENT_SYM, BSP_NUM, DEL_FKY    // Ensure ENT_SYM/BSP_NUM accessible for tri-layer
+        KC_LBRC, KC_7,    KC_8,    KC_9,    KC_RBRC,                   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+        KC_SCLN, KC_4,    KC_5,    KC_6,    KC_PEQL,                   _______,   _______, _______, _______, _______,
+        KC_GRV,  KC_1,    KC_2,    KC_3,    KC_BSLS,                   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   QK_REP,  KC_0,    KC_PMNS, ENT_SYM, _______, DEL_FKY
     ),
 
     [_FKEY] = LAYOUT_split_3x5_3(
-  KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,
-  KC_NO,   KC_NO,   KC_NO,   AC_TOGG,   QK_BOOT,
-  KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,
-           KC_NO,   _______, _______,
-  _______, _______,
-  KC_F10,  KC_F1,   KC_F2,   KC_F3,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_APP,  KC_NO,   QK_REP,
-  KC_NO,   KC_NO,   _______
+        KC_F12,  KC_F7,   KC_F8,   KC_F9,   KC_PSCR,                   KC_NO,   KC_NO,   KC_NO,   AC_TOGG, QK_BOOT,
+        KC_F11,  KC_F4,   KC_F5,   KC_F6,   KC_NO,                     _______, _______, _______, _______, _______,
+        // Right bottom row (K M , . /): Linux TTY switch
+        KC_F10,  KC_F1,   KC_F2,   KC_F3,   KC_NO,                     C(A(KC_F1)), C(A(KC_F2)), C(A(KC_F3)), C(A(KC_F4)), C(A(KC_F5)),
+                                   KC_APP,  KC_NO,   QK_REP, _______,  _______, _______
     ),
 
     [_EXTRA] = LAYOUT_split_3x5_3(
-  // Tri-layer: NAV + SYM_R active = EXTRA layer
-  // System functions, debugging, RGB controls, etc.
-  QK_BOOT, AC_TOGG, KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-           KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-  _______, _______, _______,
-  _______, _______, _______
+        // Tri-layer: NAV + SYM_R active = EXTRA layer
+        // System functions, debugging, RGB controls, etc.
+        QK_BOOT, AC_TOGG, KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+        KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,                     KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
+                                   _______, _______, _______, _______, _______, _______
+    ),
+
+    [_CMD] = LAYOUT_split_3x5_3(
+        // Hold DEL_FKY and press:
+        // P=paste, Y=copy, ESC=interrupt
+        // A=ä, O=ö, U=ü, S=ß (+ Shift for uppercase)
+        KC_NO,           KC_NO,   KC_NO,           CMD_PASTE, KC_NO,        KC_NO,   KC_NO,           UP(U_UE_L,U_UE_U), CMD_COPY,        KC_NO,
+        UP(U_AE_L,U_AE_U), _______, UP(U_SS_L,U_SS_U), _______, _______,     _______,  _______,         _______,            _______,         UP(U_OE_L,U_OE_U),
+        KC_NO,           KC_NO,   KC_NO,           KC_NO,     KC_NO,        KC_NO,   KC_NO,           KC_NO,              KC_NO,           KC_NO,
+                                                   CMD_INTR,  KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO
     ),
 };
 
@@ -295,6 +339,7 @@ void leader_start_user(void) {
     // White at configured brightness while leader is active
     rgblight_sethsv_noeeprom(0, 0, LED_BRIGHTNESS);
 #endif
+    leader_len = 0;
 }
 
 void leader_end_user(void) {
@@ -308,6 +353,16 @@ void leader_end_user(void) {
     // Turn off leader overlay and restore layer color
     leader_overlay_active = false;
     apply_layer_color(layer_state);
+}
+
+bool leader_add_user(uint16_t keycode) {
+    leader_len++;
+    // If DEL is hit again during leader wait, end immediately and treat as DEL,DEL.
+    if (keycode == DEL_FKY) {
+        return true;
+    }
+    // Default: auto-complete after two keys.
+    return leader_len >= 2;
 }
 
 // ============================================================================
@@ -407,6 +462,7 @@ static inline uint8_t hsv_h_for_layer(uint8_t layer) {
         case _NUM:   return 212; // Magenta (~300°)
         case _FKEY:  return 43;  // Yellow (~60°)
         case _EXTRA: return 233; // Rose (~330°)
+        case _CMD:
         case _BASE:
         default:     return 0;   // Off (S ignored, V=0)
     }
@@ -414,14 +470,15 @@ static inline uint8_t hsv_h_for_layer(uint8_t layer) {
 
 static inline uint8_t hsv_s_for_layer(uint8_t layer) {
     switch (layer) {
+        case _CMD:
         case _BASE:  return 0;   // Off when V=0
         default:     return 255; // Fully saturated
     }
 }
 
 static inline uint8_t hsv_v_for_layer(uint8_t layer) {
-    // Global brightness from config; Base layer off
-    return (layer == _BASE) ? 0 : LED_BRIGHTNESS;
+    // Global brightness from config; Base/CMD layers off
+    return (layer == _BASE || layer == _CMD) ? 0 : LED_BRIGHTNESS;
 }
 
 // RGBlight layer segments (1 LED total). We also set HSV directly for precision.
@@ -458,6 +515,28 @@ static bool hrm_pressed[HRM_COUNT] = {0};
 static bool hrm_is_hold[HRM_COUNT] = {0};
 static uint8_t hrm_active_count = 0;
 static deferred_token hrm_tokens[HRM_COUNT] = {0};
+static void same_app_window_cycle(bool reverse) {
+    os_variant_t os = detected_host_os();
+    uint16_t mod_primary = KC_LALT;
+    uint16_t key = KC_GRV; // backtick
+    bool add_shift = reverse;
+
+    if (os == OS_MACOS || os == OS_IOS) {
+        mod_primary = KC_LGUI; // Cmd + `
+        key = KC_GRV;
+    } else if (os == OS_WINDOWS) {
+        // Windows: kein natives same-app cycling → Alt+Esc als globaler Fallback
+        mod_primary = KC_LALT;
+        key = KC_ESC;
+        add_shift = false;
+    }
+
+    if (add_shift) register_code(KC_LSFT);
+    register_code(mod_primary);
+    tap_code(key);
+    unregister_code(mod_primary);
+    if (add_shift) unregister_code(KC_LSFT);
+}
 
 static int hrm_index_for(uint16_t kc) {
     switch (kc) {
@@ -555,6 +634,11 @@ static void apply_layer_color(layer_state_t state) {
         // Preserve HRM overlay color until HRM released
         return;
     }
+    if (del_fky_hold_visual) {
+        // DEL hold-command feedback color
+        rgblight_sethsv_noeeprom(CMD_HOLD_HUE, 255, LED_BRIGHTNESS);
+        return;
+    }
     uint8_t top = get_highest_layer(state);
     rgblight_sethsv_noeeprom(hsv_h_for_layer(top), hsv_s_for_layer(top), hsv_v_for_layer(top));
 
@@ -567,6 +651,7 @@ static void apply_layer_color(layer_state_t state) {
         case _NUM:   rgblight_set_layer_state(5, true); break;
         case _FKEY:  rgblight_set_layer_state(6, true); break;
         case _EXTRA: rgblight_set_layer_state(7, true); break;
+        case _CMD:
         case _BASE:
         default:     /* base off */ break;
     }
@@ -647,6 +732,50 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 // ============================================================================
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    // DEL_FKY hybrid:
+    // tap => start QMK Leader, hold => _CMD layer while held.
+    // While DEL is held, any other pressed key marks it as hold-use and
+    // immediately enables hold-color feedback.
+    if (del_fky_pressed && keycode != DEL_FKY && record->event.pressed) {
+        if (!del_fky_used_as_hold) {
+            del_fky_used_as_hold = true;
+            del_fky_hold_visual = true;
+            cancel_deferred_exec(del_fky_hold_visual_token);
+#ifdef RGBLIGHT_LAYERS
+            apply_layer_color(layer_state);
+#endif
+        }
+    }
+
+    if (keycode == DEL_FKY) {
+        // If Leader is already active, pass DEL through so Leader can record DEL,DEL.
+        if (leader_sequence_active()) {
+            return true;
+        }
+
+        if (record->event.pressed) {
+            del_fky_pressed = true;
+            del_fky_used_as_hold = false;
+            del_fky_hold_visual = false;
+            layer_on(_CMD);
+            cancel_deferred_exec(del_fky_hold_visual_token);
+            del_fky_hold_visual_token = defer_exec(DEL_HOLD_VISUAL_MS, del_fky_hold_visual_cb, NULL);
+        } else {
+            // DEL press may have been consumed by active Leader processing.
+            if (!del_fky_pressed) {
+                return false;
+            }
+            cancel_deferred_exec(del_fky_hold_visual_token);
+            del_fky_hold_visual = false;
+            layer_off(_CMD);
+            del_fky_pressed = false;
+            if (!del_fky_used_as_hold) {
+                leader_start();
+            }
+        }
+        return false;
+    }
+
     // BSPC quick-tap guard disabled (state machine handles behavior now)
     // Track BSP_NUM pressed state (for conditional HOOKP on SPC_NAV)
     if (keycode == BSP_NUM) {
@@ -687,7 +816,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
         if (key_is_left || key_is_right) {
             // Promote opposing-hand HRMs to hold immediately for LED overlay
-            // Left HRMs: A,R,S,T; Right HRMs: N,E,I,O
+            // Left HRMs: A,R,S,T,D; Right HRMs: N,E,I,O,H
             bool any_promoted = false;
             if (key_is_left) {
                 // Promote right-hand HRMs
@@ -870,10 +999,28 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                 return false;
             case APP_SW_PREV:
                 if (record->event.pressed) {
-                    register_code(mod); register_code(KC_LSFT); tap_code(KC_TAB); unregister_code(KC_LSFT); unregister_code(mod);
+                    same_app_window_cycle(true);
                 }
                 return false;
         }
+    }
+
+    // Hold-DEL command layer actions
+    if (keycode == CMD_COPY || keycode == CMD_PASTE || keycode == CMD_INTR) {
+        if (record->event.pressed) {
+            switch (keycode) {
+                case CMD_COPY:
+                    cmd_copy_os_aware();
+                    break;
+                case CMD_PASTE:
+                    cmd_paste_os_aware();
+                    break;
+                case CMD_INTR:
+                    cmd_interrupt();
+                    break;
+            }
+        }
+        return false;
     }
 
     // Mouse modifier keys (MOUSE layer only)
@@ -944,60 +1091,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 
     // Let MS_ACL0/1/2 fall through to QMK default handling (momentary accel)
-
-    // Get current OS and mods
-    os_variant_t os = detected_host_os();
-    bool is_macos = (os == OS_MACOS || os == OS_IOS);
-    uint8_t mods = get_mods();
-
-    // Homerow mod LED removed - was causing keyboard lockup
-    // LED calls in process_record_user() can block even with _noeeprom()
-
-    // OS-aware modifier handling for Backspace (word delete)
-    if (keycode == BSP_NUM) {
-        // Ctrl + Backspace = Delete word backward (OS-aware)
-        // Linux: Ctrl+Backspace, macOS: Option+Backspace
-        if (mods & MOD_MASK_CTRL) {
-            if (record->event.pressed) {
-                // Clear all mods, send the correct sequence, restore mods
-                clear_mods();
-                send_keyboard_report();
-
-                if (is_macos) {
-                    tap_code16(LALT(KC_BSPC));  // Option+Backspace on macOS
-                } else {
-                    tap_code16(LCTL(KC_BSPC));  // Ctrl+Backspace on Linux
-                }
-
-                set_mods(mods);
-                send_keyboard_report();
-            }
-            return false;  // Don't process BSP_NUM as layer-tap
-        }
-    }
-
-    // OS-aware modifier handling for Delete
-    if (keycode == DEL_FKY) {
-        // Ctrl + Delete = Delete word forward (OS-aware)
-        // Linux: Ctrl+Delete, macOS: Option+Delete
-        if (mods & MOD_MASK_CTRL) {
-            if (record->event.pressed) {
-                // Clear all mods, send the correct sequence, restore mods
-                clear_mods();
-                send_keyboard_report();
-
-                if (is_macos) {
-                    tap_code16(LALT(KC_DEL));  // Option+Delete on macOS
-                } else {
-                    tap_code16(LCTL(KC_DEL));  // Ctrl+Delete on Linux
-                }
-
-                set_mods(mods);
-                send_keyboard_report();
-            }
-            return false;  // Don't process DEL_FKY as layer-tap
-        }
-    }
 
     return true;
 }

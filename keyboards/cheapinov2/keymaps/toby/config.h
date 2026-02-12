@@ -20,7 +20,7 @@
 #define COMBO_TERM 100  // Time window for combo detection (ms) - increased for easier triggering
 
 // Leader Key
-#define LEADER_TIMEOUT 800  // Time to complete leader sequence (ms) - increased for more time
+#define LEADER_TIMEOUT 1000  // More time to start; sequences auto-complete on 2nd key
 #define LEADER_PER_KEY_TIMING  // Each key in sequence has own timeout
 
 // OS Detection - Debug mode removed (caused EECONFIG_SIZE error on RP2040)
@@ -54,6 +54,9 @@
 #define LED_BRIGHTNESS 50
 #define LED_BRIGHTNESS_HOMEROW 50
 
+// Unicode: Linux IBus method (Ctrl+Shift+U)
+#define UNICODE_SELECTED_MODES UNICODE_MODE_LINUX
+
 // Caps Word - enable via both shifts at keymap level
 #ifndef BOTH_SHIFTS_TURNS_ON_CAPS_WORD
 #define BOTH_SHIFTS_TURNS_ON_CAPS_WORD
@@ -72,6 +75,13 @@
 // App switcher auto-release timeout (ms) after last Tab when toggled
 #ifndef APP_SW_AUTORELEASE_MS
 #define APP_SW_AUTORELEASE_MS 1500
+#endif
+
+// App-level leader trigger sent by DEL,DEL (double-tap DEL_FKY)
+// Use a robust combo instead of F13-F24 (often intercepted/ignored by host).
+// Map this combo in tmux/nvim/emacs to keep one consistent "app leader".
+#ifndef APP_LEADER_KEY
+#define APP_LEADER_KEY C(A(KC_F12))
 #endif
 
 // BSPC timing is managed in keymap (triple-tap window)
